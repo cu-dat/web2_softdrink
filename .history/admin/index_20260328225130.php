@@ -119,7 +119,7 @@ $lowStock = $conn->query("SELECT * FROM products WHERE stock_quantity <= 20 ORDE
     <div class="card shadow">
         <div class="card-header d-flex justify-content-between">
             <h5 class="mb-0">⚠️ Sản phẩm sắp hết hàng</h5>
-            <a href="/web2_softdrink/admin/products/product.php" class="btn btn-warning btn-sm">
+            <a href="product.php" class="btn btn-warning btn-sm">
                 Xem tất cả
             </a>
         </div>

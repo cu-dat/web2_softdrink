@@ -1,8 +1,7 @@
 <?php
 require_once '../includes/functions.php';
 require_once '../config/database.php';
-require_once '../includes/header.php';
-require_once '../includes/navbar.php';
+
 requireAdminLogin();
 
 $keyword = $_GET['keyword'] ?? '';
@@ -156,4 +155,3 @@ $imports = $conn->query($sql);
         </div>
     </div>
 </div>
-<?php require_once '../includes/footer.php'; ?>

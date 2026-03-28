@@ -1,8 +1,6 @@
 <?php
 require_once '../includes/functions.php';
 require_once '../config/database.php';
-require_once '../includes/header.php';
-require_once '../includes/navbar.php';
 requireAdminLogin();
 
 $keyword = $_GET['keyword'] ?? '';
@@ -21,30 +19,30 @@ $imports = $conn->query($sql);
 <style>
     /* ===== BACKGROUND ===== */
     body {
-        background: #f8f9fa;
+        background: #f5f6fa;
     }
 
     /* ===== CARD ===== */
     .card {
+        border-radius: 12px;
         border: none;
-        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
 
     .card-header {
         font-weight: 600;
         font-size: 16px;
-        border-radius: 10px 10px 0 0 !important;
     }
 
     /* ===== TABLE ===== */
     .table {
-        border-radius: 8px;
+        border-radius: 10px;
         overflow: hidden;
     }
 
-    .table-primary th {
-        background-color: #0d6efd !important;
-        color: #fff;
+    .table th {
+        background: #0d6efd !important;
+        color: white;
         text-align: center;
     }
 
@@ -52,50 +50,59 @@ $imports = $conn->query($sql);
         vertical-align: middle;
     }
 
-    /* ===== HOVER ===== */
-    .table-hover tbody tr:hover {
-        background-color: #f1f5ff;
-    }
-
     /* ===== INPUT ===== */
-    .form-control {
-        border-radius: 6px;
+    .form-control,
+    .form-select {
+        border-radius: 8px;
         padding: 8px 10px;
-        border: 1px solid #ddd;
     }
 
     .form-control:focus {
         border-color: #0d6efd;
-        box-shadow: none;
+        box-shadow: 0 0 5px rgba(13, 110, 253, 0.3);
     }
 
     /* ===== BUTTON ===== */
     .btn {
-        border-radius: 6px;
+        border-radius: 8px;
         font-weight: 500;
-    }
-
-    .btn-sm {
-        padding: 5px 10px;
     }
 
     /* ===== BADGE ===== */
     .badge {
-        font-size: 12px;
-        padding: 5px 8px;
+        font-size: 13px;
+        padding: 6px 10px;
+    }
+
+    /* ===== TOTAL ===== */
+    h5 {
+        font-weight: 600;
+    }
+
+    .text-danger {
+        font-weight: bold;
+    }
+
+    /* ===== HOVER TABLE ===== */
+    .table-hover tbody tr:hover {
+        background-color: #f1f5ff;
     }
 
     /* ===== SEARCH BOX ===== */
-    .shadow-sm {
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+    input[type="text"]::placeholder {
+        color: #999;
     }
+    /* smooth */
+* {
+    transition: all 0.2s ease;
+}
 
-    /* ===== SPACING ===== */
-    h5 {
-        margin: 0;
-    }
+/* button hover */
+.btn:hover {
+    transform: translateY(-1px);
+    opacity: 0.95;
+}
 </style>
-
 <div class="container mt-4">
 
     <div class="card shadow">
@@ -108,14 +115,14 @@ $imports = $conn->query($sql);
         <div class="card-body">
 
             <!-- SEARCH -->
-            <form method="GET" class="row mb-3 align-items-center">
+            <form method="GET" class="row mb-3">
                 <div class="col-md-4">
                     <input type="text" name="keyword" class="form-control shadow-sm"
                         placeholder="Tìm mã phiếu / nhà cung cấp..."
                         value="<?= htmlspecialchars($keyword) ?>">
                 </div>
                 <div class="col-md-2">
-                    <button class="btn btn-primary btn-sm">Tìm</button>
+                    <button class="btn btn-primary">Tìm</button>
                 </div>
             </form>
 
@@ -156,4 +163,3 @@ $imports = $conn->query($sql);
         </div>
     </div>
 </div>
-<?php require_once '../includes/footer.php'; ?>
