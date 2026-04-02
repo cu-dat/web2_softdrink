@@ -14,7 +14,7 @@ $phone = $_POST['phone'] ?? '';
 $address = $_POST['address'] ?? '';
 
 $stmt = $conn->prepare("
-    UPDATE customers 
+    UPDATE users
     SET full_name=?, phone=?, address=? 
     WHERE id=?
 ");

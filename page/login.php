@@ -1,22 +1,22 @@
+<?php if(session_status() == PHP_SESSION_NONE) session_start(); ?>
+
 <div class="auth-wrapper">
 
     <div class="auth-card">
 
         <h3 class="auth-title">Đăng nhập</h3>
 
-        <!-- ERROR MESSAGE -->
-        <?php if(isset($_GET['error'])): ?>
+        <!-- SUCCESS MESSAGE -->
+        <?php if(isset($_SESSION['success'])): ?>
+            <div class="alert alert-success">
+                <?= $_SESSION['success']; unset($_SESSION['success']); ?>
+            </div>
+        <?php endif; ?>
+
+        <!-- ERROR MESSAGE (FIX: dùng SESSION) -->
+        <?php if(isset($_SESSION['error'])): ?>
             <div class="alert alert-danger">
-
-                <?php
-                switch($_GET['error']){
-                    case 'empty': echo "Vui lòng nhập đầy đủ thông tin"; break;
-                    case 'notfound': echo "Email không tồn tại"; break;
-                    case 'wrong': echo "Sai mật khẩu"; break;
-                    case 'google': echo "Tài khoản này đăng nhập bằng Google"; break;
-                }
-                ?>
-
+                <?= $_SESSION['error']; unset($_SESSION['error']); ?>
             </div>
         <?php endif; ?>
 
@@ -45,12 +45,22 @@
 
         </form>
 
-        <a href="index.php?page=register" class="d-block text-center mt-2">
-            Chưa có tài khoản?
-        </a>
+        <!-- 2 LINK NẰM NGANG -->
+        <div class="d-flex justify-content-between mt-2">
+
+            <!-- 🔥 chuyển sang trang riêng -->
+            <a href="index.php?page=forgot_password">
+                Quên mật khẩu?
+            </a>
+
+            <a href="index.php?page=register">
+                Chưa có tài khoản?
+            </a>
+
+        </div>
 
         <!-- GOOGLE -->
-        <a href="action/google_login.php" class="google-btn">
+        <a href="action/google_login.php" class="google-btn mt-3">
     
             <img src="https://developers.google.com/identity/images/g-logo.png" alt="google">
 

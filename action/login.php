@@ -6,7 +6,8 @@ $email = $_POST['email'] ?? '';
 $password = $_POST['password'] ?? '';
 
 if(!$email || !$password){
-    header("Location: ../index.php?page=login&error=empty");
+    $_SESSION['error'] = "Vui lòng nhập đầy đủ thông tin";
+    header("Location: ../index.php?page=login");
     exit;
 }
 
@@ -16,7 +17,8 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 if($result->num_rows == 0){
-    header("Location: ../index.php?page=login&error=notfound");
+    $_SESSION['error'] = "Email không tồn tại";
+    header("Location: ../index.php?page=login");
     exit;
 }
 
@@ -24,13 +26,15 @@ $user = $result->fetch_assoc();
 
 // login google
 if($user['provider'] == 'google'){
-    header("Location: ../index.php?page=login&error=google");
+    $_SESSION['error'] = "Tài khoản này đăng nhập bằng Google";
+    header("Location: ../index.php?page=login");
     exit;
 }
 
 // check password
 if(!password_verify($password, $user['password'])){
-    header("Location: ../index.php?page=login&error=wrong");
+    $_SESSION['error'] = "Sai mật khẩu";
+    header("Location: ../index.php?page=login");
     exit;
 }
 

@@ -48,11 +48,7 @@ body{
     <?php include(__DIR__ . "/../" . $page); ?>
 </div>
 
-<!-- FOOTER -->
-<footer class="text-center mt-5 p-3 bg-light">
-    © 2026 Soft Drink Store
-</footer>
-
+<?php include(__DIR__ . "/../includes/footer.php"); ?>
 <!-- JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 

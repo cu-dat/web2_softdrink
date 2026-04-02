@@ -35,11 +35,19 @@ $count = array_sum($_SESSION['cart'] ?? []);
     border-radius: 50%;
     cursor: pointer;
 }
+/* ===== LOGO ===== */
+.logo-img{
+    height: 50px;          /* giữ chiều cao cũ */
+    transform: scale(1.3); /* phóng to logo */
+    transform-origin: left center;
+}
 </style>
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-black px-4">
 
-    <a class="navbar-brand text-warning fw-bold" href="index.php">BONLAO</a>
+    <a class="navbar-brand" href="index.php">
+    <img src="img/logo.jpg" class="logo-img" alt="Logo">
+</a>
 
     <div class="collapse navbar-collapse">
 

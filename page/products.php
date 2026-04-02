@@ -45,7 +45,6 @@ if($start >= $totalProducts){
     $start = 0;
 }
 
-// CẮT DATA
 $products = array_slice($filtered, $start, $perPage);
 ?>
 
@@ -57,23 +56,44 @@ $products = array_slice($filtered, $start, $perPage);
 
     <div class="col-md-9">
 
-        <h3>Thế giới thức uống</h3>
+        <h3>Thế Giới Uống Nước</h3>
 
-        <?php include(__DIR__ . "/../component/product-list.php"); ?>
+        <?php if(!empty($_GET['keyword'])): ?>
+            <p>Kết quả cho: <b>"<?= htmlspecialchars($_GET['keyword']) ?>"</b></p>
+        <?php endif; ?>
+
+        <?php if(empty($filtered)): ?>
+
+            <div class="alert alert-warning">
+                ❌ Không có sản phẩm nào phù hợp!
+            </div>
+
+        <?php else: ?>
+
+            <?php include(__DIR__ . "/../component/product-list.php"); ?>
+
+        <?php endif; ?>
 
         <!-- ===== PAGINATION ===== -->
-        <div style="text-align:center;margin-top:20px;">
+        <?php if($totalPages > 1): ?>
+        <div style="text-align:center;margin:40px 0;">
 
-            <div>Trang <?= $pageNum ?> / <?= $totalPages ?></div>
+            <div style="margin-bottom:10px;">
+                Trang <?= $pageNum ?> / <?= $totalPages ?>
+            </div>
+
+            <?php $query = $_GET; ?>
 
             <!-- PREV -->
             <?php if($pageNum > 1): ?>
-                <a href="index.php?page=products&p=<?= $i ?>">«</a>
+                <?php $query['p'] = $pageNum - 1; ?>
+                <a href="index.php?<?= http_build_query($query) ?>">«</a>
             <?php endif; ?>
 
             <!-- NUMBER -->
             <?php for($i=1;$i<=$totalPages;$i++): ?>
-                <a href="index.php?page=product&p=<?= $i ?>"
+                <?php $query['p'] = $i; ?>
+                <a href="index.php?<?= http_build_query($query) ?>"
                    style="
                         margin:0 5px;
                         padding:6px 10px;
@@ -88,10 +108,12 @@ $products = array_slice($filtered, $start, $perPage);
 
             <!-- NEXT -->
             <?php if($pageNum < $totalPages): ?>
-                <a href="index.php?page=product&p=<?= $pageNum+1 ?>">»</a>
+                <?php $query['p'] = $pageNum + 1; ?>
+                <a href="index.php?<?= http_build_query($query) ?>">»</a>
             <?php endif; ?>
 
         </div>
+        <?php endif; ?>
 
     </div>
 

@@ -26,6 +26,9 @@ switch($pageKey){
     case 'register':
         $page = "page/register.php";
         break;
+    case 'forgot_password':
+        $page = "page/forgot_password.php";
+        break;
 
     case 'checkout':
         $page = "page/checkout.php";
