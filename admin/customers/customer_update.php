@@ -6,7 +6,7 @@ $full_name = $_POST['full_name'];
 $email     = $_POST['email'];
 $role      = $_POST['role'];
 
-$sql = "UPDATE users 
+$sql = "UPDATE customers 
         SET full_name=?, email=?, role=? 
         WHERE id=?";
 

@@ -4,7 +4,7 @@ require_once '../includes/header.php';
 require_once '../includes/navbar.php';
 
 $id = $_GET['id'];
-$result = $conn->query("SELECT * FROM users WHERE id = $id");
+$result = $conn->query("SELECT * FROM customers WHERE id = $id");
 $row = $result->fetch_assoc();
 ?>
 
@@ -33,6 +33,15 @@ $row = $result->fetch_assoc();
                     <input type="email" name="email" 
                            class="form-control"
                            value="<?= $row['email'] ?>">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Role</label>
+                    <select name="role" class="form-select">
+                        <option value="customer" <?= $row['role']=="customer"?"selected":"" ?>>Customer</option>
+                        <option value="staff" <?= $row['role']=="staff"?"selected":"" ?>>Staff</option>
+                        <option value="admin" <?= $row['role']=="admin"?"selected":"" ?>>Admin</option>
+                    </select>
                 </div>
 
                 <div class="d-flex justify-content-between">

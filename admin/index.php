@@ -1,25 +1,22 @@
 <?php
 $pageTitle = 'Bảng điều khiển';
-require_once 'includes/functions.php';
 require_once 'includes/header.php';
 require_once 'includes/navbar.php';
-requireAdmin($conn);
 
 // Lấy thống kê
 $totalProducts = $conn->query("SELECT COUNT(*) as count FROM products")->fetch_assoc()['count'];
 $totalCategories = $conn->query("SELECT COUNT(*) as count FROM categories")->fetch_assoc()['count'];
 $totalOrders = $conn->query("SELECT COUNT(*) as count FROM orders")->fetch_assoc()['count'];
 $totalRevenue = $conn->query("SELECT COALESCE(SUM(total_amount),0) as total FROM orders WHERE status = 'completed'")->fetch_assoc()['total'];
-$totalCustomers = $conn->query("SELECT COUNT(*) as count FROM users")->fetch_assoc()['count'];
+$totalCustomers = $conn->query("SELECT COUNT(*) as count FROM customers")->fetch_assoc()['count'];
 $pendingOrders = $conn->query("SELECT COUNT(*) as count FROM orders WHERE status = 'pending'")->fetch_assoc()['count'];
 
 // Đơn hàng gần đây
 $recentOrders = $conn->query("
-    SELECT o.*, u.full_name as customer_name 
+    SELECT o.*, c.full_name as customer_name 
     FROM orders o 
-    LEFT JOIN users u ON o.customer_id = u.id 
-    ORDER BY o.created_at DESC 
-    LIMIT 5
+    LEFT JOIN customers c ON o.customer_id = c.id 
+    ORDER BY o.created_at DESC LIMIT 5
 ");
 
 // Sản phẩm sắp hết hàng
@@ -82,7 +79,7 @@ $lowStock = $conn->query("SELECT * FROM products WHERE stock_quantity <= 20 ORDE
     <div class="card shadow mb-4">
         <div class="card-header d-flex justify-content-between">
             <h5 class="mb-0">Đơn hàng gần đây</h5>
-            <a href="/web2_softdrink/admin/orders/orders.php" class="btn btn-primary btn-sm">Xem tất cả</a>
+            <a href="orders.php" class="btn btn-primary btn-sm">Xem tất cả</a>
         </div>
         <div class="card-body p-0">
             <table class="table table-striped table-hover mb-0">
@@ -122,7 +119,7 @@ $lowStock = $conn->query("SELECT * FROM products WHERE stock_quantity <= 20 ORDE
     <div class="card shadow">
         <div class="card-header d-flex justify-content-between">
             <h5 class="mb-0">⚠️ Sản phẩm sắp hết hàng</h5>
-            <a href="/web2_softdrink/admin/products/product.php" class="btn btn-warning btn-sm">
+            <a href="products.php" class="btn btn-warning btn-sm">
                 Xem tất cả
             </a>
         </div>

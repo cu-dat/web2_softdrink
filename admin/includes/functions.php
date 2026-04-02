@@ -3,151 +3,60 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// =======================
-// AUTH
-// =======================
-
-function isLoggedIn()
-{
-    return isset($_SESSION['user']);
+// ===== KIỂM TRA ĐĂNG NHẬP =====
+function isAdminLoggedIn() {
+    return isset($_SESSION['admin_id']);
 }
 
-function currentUser()
-{
-    return $_SESSION['user'] ?? null;
-}
-
-function requireLogin($conn)
-{
-    if (!isLoggedIn()) {
+function requireAdminLogin() {
+    if (!isAdminLoggedIn()) {
         header("Location: login.php");
         exit();
     }
-
-    checkUserActive($conn);
 }
 
-// =======================
-// ROLE (CHỈ ADMIN)
-// =======================
-
-function isAdmin()
-{
-    return isset($_SESSION['user']['role']) &&
-        $_SESSION['user']['role'] === 'admin';
-}
-
-// =======================
-// REQUIRE ADMIN
-// =======================
-
-function requireAdmin($conn)
-{
-    requireLogin($conn);
-
-    if (!isAdmin()) {
-        header("Location: login.php?msg=forbidden");
-        exit();
-    }
-}
-
-// =======================
-// CHECK ACTIVE
-// =======================
-
-function checkUserActive($conn)
-{
-    if (!isset($_SESSION['user']['id'])) {
-        return;
-    }
-
-    $stmt = $conn->prepare("SELECT status FROM users WHERE id=?");
-    $stmt->bind_param("i", $_SESSION['user']['id']);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $user = $result->fetch_assoc();
-
-    if (!$user || (int)$user['status'] === 0) {
-        session_destroy();
-        header("Location: login.php?error=locked");
-        exit();
-    }
-}
-
-// =======================
-// LOGOUT
-// =======================
-
-function logout()
-{
-    session_destroy();
-    header("Location: login.php");
-    exit();
-}
-
-// =======================
-// UI HELPER
-// =======================
-
-function getRoleBadge($role)
-{
-    return $role === 'admin'
-        ? '<span class="badge bg-danger">Admin</span>'
-        : '<span class="badge bg-secondary">Customer</span>';
-}
-
-function getUserStatusBadge($status)
-{
-    return $status == 1
-        ? '<span class="badge bg-success">Hoạt động</span>'
-        : '<span class="badge bg-danger">Đã khóa</span>';
-}
-
-function getOrderStatusBadge($status)
-{
-    $badges = [
-        'pending'   => '<span class="badge bg-warning">Chờ xử lý</span>',
-        'confirmed' => '<span class="badge bg-primary">Đã xác nhận</span>',
-        'completed' => '<span class="badge bg-success">Hoàn thành</span>',
-        'cancelled' => '<span class="badge bg-danger">Đã huỷ</span>',
-    ];
-
-    return $badges[$status] ?? '<span class="badge bg-secondary">???</span>';
-}
-
-// =======================
-// FORMAT
-// =======================
-
-function sanitize($data)
-{
+function sanitize($data) {
     return htmlspecialchars(strip_tags(trim($data)));
 }
 
-function formatCurrency($amount)
-{
+function formatCurrency($amount) {
     return number_format($amount, 0, ',', '.') . ' ₫';
 }
 
-function formatDate($date)
-{
+function formatDate($date) {
     return date('d/m/Y H:i', strtotime($date));
 }
 
-// =======================
-// FLASH MESSAGE
-// =======================
-
-function setFlashMessage($type, $message)
-{
-    $_SESSION['flash'] = [
-        'type' => $type,
-        'message' => $message
-    ];
+function getUserStatusBadge($status) {
+    return $status == 1 
+        ? '<span class="badge badge-success">Hoạt động</span>' 
+        : '<span class="badge badge-danger">Đã khóa</span>';
 }
 
-function getFlashMessage()
-{
+function getOrderStatusBadge($status) {
+    $badges = [
+        'pending'    => '<span class="badge badge-warning">Chờ xử lý</span>',
+        'processing' => '<span class="badge badge-info">Đang xử lý</span>',
+        'completed'  => '<span class="badge badge-success">Hoàn thành</span>',
+        'cancelled'  => '<span class="badge badge-danger">Đã hủy</span>',
+    ];
+    return $badges[$status] ?? '<span class="badge badge-secondary">???</span>';
+}
+
+function getRoleBadge($role) {
+    $badges = [
+        'super_admin' => '<span class="badge badge-primary">Super Admin</span>',
+        'admin'       => '<span class="badge badge-info">Admin</span>',
+        'staff'       => '<span class="badge badge-secondary">Nhân viên</span>',
+    ];
+    return $badges[$role] ?? '';
+}
+
+function setFlashMessage($type, $message) {
+    $_SESSION['flash'] = ['type' => $type, 'message' => $message];
+}
+
+function getFlashMessage() {
     if (isset($_SESSION['flash'])) {
         $flash = $_SESSION['flash'];
         unset($_SESSION['flash']);
@@ -156,37 +65,21 @@ function getFlashMessage()
     return null;
 }
 
-// =======================
-// RANDOM PASSWORD
-// =======================
-
-function generateRandomPassword($length = 8)
-{
+function generateRandomPassword($length = 8) {
     $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     $password = '';
-
     for ($i = 0; $i < $length; $i++) {
         $password .= $chars[random_int(0, strlen($chars) - 1)];
     }
-
     return $password;
 }
 
-// =======================
-// LOG ADMIN ACTION
-// =======================
-
-function logAdminAction($conn, $action, $detail = '')
-{
-    $user_id = $_SESSION['user']['id'] ?? 0;
+function logAdminAction($conn, $action, $detail = '') {
+    $admin_id = $_SESSION['admin_id'] ?? 0;
     $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-
-    $stmt = $conn->prepare("
-        INSERT INTO admin_logs (admin_id, action, detail, ip_address) 
-        VALUES (?, ?, ?, ?)
-    ");
-
-    $stmt->bind_param("isss", $user_id, $action, $detail, $ip);
+    $stmt = $conn->prepare("INSERT INTO admin_logs (admin_id, action, detail, ip_address) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("isss", $admin_id, $action, $detail, $ip);
     $stmt->execute();
     $stmt->close();
 }
+?>

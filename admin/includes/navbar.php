@@ -48,21 +48,6 @@
                         👥 Khách hàng
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link <?php echo $currentPage == 'import.php' ? 'active' : ''; ?>"
-                        href="/web2_softdrink/admin/imports/import.php">
-                        📦 Nhập hàng
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/web2_softdrink/admin/report/stock_check.php">📦 Tồn kho</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/web2_softdrink/admin/report/report_import_export.php">📊 Báo cáo</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/web2_softdrink/admin/report/low_stock.php">⚠️ Tồn kho thấp</a>
-                </li>
             </ul>
             <!-- Logout -->
             <a href="/web2_softdrink/admin/logout.php" class="btn btn-danger">

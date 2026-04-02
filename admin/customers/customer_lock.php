@@ -3,7 +3,7 @@ include "../config/database.php";
 
 $id = $_GET['id'];
 
-$sql = "UPDATE users
+$sql = "UPDATE customers 
         SET status = IF(status=1,0,1) 
         WHERE id=?";
 

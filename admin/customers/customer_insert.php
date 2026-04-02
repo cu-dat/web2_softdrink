@@ -13,7 +13,7 @@ $default_password = "123456";
 // mã hóa
 $password = password_hash($default_password, PASSWORD_DEFAULT);
 
-$sql = "INSERT INTO users (full_name, email, phone, address, password, role)
+$sql = "INSERT INTO customers (full_name, email, phone, address, password, role)
         VALUES (?, ?, ?, ?, ?, ?)";
 
 $stmt = $conn->prepare($sql);

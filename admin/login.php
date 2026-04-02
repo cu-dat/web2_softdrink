@@ -1,73 +1,52 @@
 <?php
-session_start();
+require_once __DIR__ . '/../admin/includes/functions.php';
+require_once __DIR__ . '/../admin/config/database.php';
 
-require_once __DIR__ . '/includes/functions.php';
-require_once __DIR__ . '/config/database.php';
-
+if (isAdminLoggedIn()) {
+    header("Location: index.php");
+    exit();
+}
 $error = '';
 $username = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-    $username = trim($_POST['username'] ?? '');
+    $username = sanitize($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
     if (empty($username) || empty($password)) {
-        $error = "Vui lòng nhập đầy đủ!";
+        $error = 'Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.';
     } else {
-
-        // ✅ cho phép login bằng username hoặc email
-        $stmt = $conn->prepare("
-            SELECT id, username, password, full_name, role, status
-            FROM users
-            WHERE username = ? OR email = ?
-            LIMIT 1
-        ");
-
-        $stmt->bind_param("ss", $username, $username);
+        // ===== SỬA: Bỏ role và status khỏi query =====
+        $stmt = $conn->prepare("SELECT id, username, password, full_name FROM admin_users WHERE username = ?");
+        $stmt->bind_param("s", $username);
         $stmt->execute();
         $result = $stmt->get_result();
 
         if ($result->num_rows === 1) {
+            $admin = $result->fetch_assoc();
 
-            $user = $result->fetch_assoc();
-
-            // ✅ check password trước (QUAN TRỌNG)
-            if (!password_verify($password, $user['password'])) {
-                $error = "Sai tài khoản hoặc mật khẩu!";
-            }
-
-            // ❌ bị khóa
-            elseif ($user['status'] == 0) {
-                $error = "Tài khoản đã bị khóa!";
-            }
-
-            // ❌ không phải admin
-            elseif ($user['role'] !== 'admin') {
-                $error = "Bạn không có quyền truy cập admin!";
-            }
-
-            // ✅ OK
-            else {
-                $_SESSION['user'] = [
-                    'id'   => $user['id'],
-                    'name' => $user['full_name'],
-                    'role' => $user['role']
-                ];
+            if (password_verify($password, $admin['password'])) {
+                // ===== ĐĂNG NHẬP THÀNH CÔNG =====
+                $_SESSION['admin_id']       = $admin['id'];
+                $_SESSION['admin_name']     = $admin['full_name'];
+                $_SESSION['admin_username'] = $admin['username'];
+                $_SESSION['admin_role']     = 'super_admin'; // Mặc định
+                $_SESSION['login_time']     = time();
 
                 header("Location: index.php");
                 exit();
+            } else {
+                $error = 'Tên đăng nhập hoặc mật khẩu không đúng.';
             }
-
         } else {
-            $error = "Sai tài khoản hoặc mật khẩu!";
+            $error = 'Tên đăng nhập hoặc mật khẩu không đúng.';
         }
+        $stmt->close();
     }
 }
 ?>
 <!DOCTYPE html>
 <html lang="vi">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -75,7 +54,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-
 <body class="bg-light">
     <div class="container">
         <div class="row justify-content-center align-items-center vh-100">
@@ -132,5 +110,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-
 </html>

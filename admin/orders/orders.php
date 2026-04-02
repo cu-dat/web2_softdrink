@@ -1,170 +1,81 @@
 <?php
-require_once '../includes/functions.php';
-require_once '../config/database.php';
-require_once '../includes/navbar.php';
-require_once '../includes/header.php';
+$pageTitle = 'Orders';
+require_once 'includes/header.php';
+require_once 'includes/navbar.php';
 
-requireAdmin($conn);
-
-// ===== FILTER =====
-$from   = $_GET['from'] ?? '';
-$to     = $_GET['to'] ?? '';
-$status = $_GET['status'] ?? '';
-$sort   = $_GET['sort'] ?? 'asc';
-
-// ===== QUERY =====
-$sql = "
-SELECT o.*, u.full_name, u.address
-FROM orders o
-LEFT JOIN users u ON o.customer_id = u.id
-WHERE 1
-";
-
-// lọc ngày
-if ($from && $to) {
-    $sql .= " AND DATE(o.created_at) BETWEEN '$from' AND '$to'";
+// Filter by status
+$statusFilter = sanitize($_GET['status'] ?? '');
+$where = '';
+if ($statusFilter) {
+    $where = "WHERE o.status = '" . $conn->real_escape_string($statusFilter) . "'";
 }
 
-// lọc status
-if ($status) {
-    $sql .= " AND o.status = '$status'";
-}
-
-// sort
-if ($sort === 'address') {
-    $sql .= " ORDER BY u.address ASC";
-} else {
-    $sql .= " ORDER BY o.created_at ASC";
-}
-
-$result = $conn->query($sql);
+$orders = $conn->query("
+    SELECT o.*, c.full_name as customer_name, c.phone as customer_phone
+    FROM orders o 
+    LEFT JOIN customers c ON o.customer_id = c.id 
+    $where
+    ORDER BY o.created_at DESC
+");
 ?>
 
-<!DOCTYPE html>
-<html lang="vi">
-
-<head>
-    <meta charset="UTF-8">
-    <title>Quản lý đơn hàng</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-
-<body class="bg-light">
-
-    <div class="container mt-4">
-
-        <!-- HEADER -->
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white">
-                <h5>📦 Quản lý đơn hàng</h5>
+<div class="main-content">
+    <div class="top-header">
+        <h1>📦 Orders</h1>
+        <div class="admin-info">
+            <span>Welcome, <?php echo htmlspecialchars($_SESSION['admin_name']); ?></span>
+            <a href="logout.php" class="btn-logout">Logout</a>
+        </div>
+    </div>
+    
+    <div class="page-content">
+        <?php if ($flash): ?>
+            <div class="alert alert-<?php echo $flash['type'] === 'success' ? 'success' : 'danger'; ?>">
+                <?php echo $flash['message']; ?>
             </div>
+        <?php endif; ?>
 
-            <div class="card-body">
-
-                <!-- FILTER -->
-                <form method="GET" class="row g-2 mb-3">
-
-                    <div class="col-md-2">
-                        <input type="date" name="from" class="form-control" value="<?= $from ?>">
-                    </div>
-
-                    <div class="col-md-2">
-                        <input type="date" name="to" class="form-control" value="<?= $to ?>">
-                    </div>
-
-                    <div class="col-md-2">
-                        <select name="status" class="form-select">
-                            <option value="">-- Trạng thái --</option>
-                            <option value="pending" <?= $status == 'pending' ? 'selected' : '' ?>>Chưa xử lý</option>
-                            <option value="confirmed" <?= $status == 'confirmed' ? 'selected' : '' ?>>Đã xác nhận</option>
-                            <option value="completed" <?= $status == 'completed' ? 'selected' : '' ?>>Đã giao</option>
-                            <option value="cancelled" <?= $status == 'cancelled' ? 'selected' : '' ?>>Đã huỷ</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-2">
-                        <select name="sort" class="form-select">
-                            <option value="desc">Mới nhất</option>
-                            <option value="address" <?= $sort == 'address' ? 'selected' : '' ?>>Theo địa chỉ</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-2">
-                        <button class="btn btn-primary w-100">Lọc</button>
-                    </div>
-
-                    <div class="col-md-2">
-                        <a href="orders.php" class="btn btn-secondary w-100">Reset</a>
-                    </div>
-
-                </form>
-
-                <!-- TABLE -->
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover align-middle text-center">
-
-                        <thead class="table-dark">
-                            <tr>
-                                <th>#</th>
-                                <th>Khách</th>
-                                <th>Địa chỉ</th>
-                                <th>Tổng tiền</th>
-                                <th>Trạng thái</th>
-                                <th>Ngày</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-
-                            <?php if ($result->num_rows > 0): ?>
-                                <?php while ($row = $result->fetch_assoc()): ?>
-                                    <tr>
-                                        <td><?= $row['id'] ?></td>
-
-                                        <td><?= htmlspecialchars($row['full_name']) ?></td>
-
-                                        <td class="text-start">
-                                            <?= htmlspecialchars($row['address']) ?>
-                                        </td>
-
-                                        <td class="text-danger fw-bold">
-                                            <?= formatCurrency($row['total_amount']) ?>
-                                        </td>
-
-                                        <td>
-                                            <?= getOrderStatusBadge($row['status']) ?>
-                                        </td>
-
-                                        <td>
-                                            <?= formatDate($row['created_at']) ?>
-                                        </td>
-
-                                        <td>
-                                            <a href="order_detail.php?id=<?= $row['id'] ?>"
-                                                class="btn btn-sm btn-info">
-                                                👁 Xem
-                                            </a>
-                                        </td>
-                                    </tr>
-                                <?php endwhile; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="7" class="text-muted">Không có đơn hàng</td>
-                                </tr>
-                            <?php endif; ?>
-
-                        </tbody>
-
-                    </table>
-                </div>
-
-            </div>
+        <!-- Filters -->
+        <div style="margin-bottom:20px;">
+            <a href="orders.php" class="btn btn-sm <?php echo !$statusFilter ? 'btn-primary' : ''; ?>" style="<?php echo $statusFilter ? 'background:#ddd;' : ''; ?>">All</a>
+            <a href="orders.php?status=pending" class="btn btn-sm <?php echo $statusFilter === 'pending' ? 'btn-warning' : ''; ?>" style="<?php echo $statusFilter !== 'pending' ? 'background:#ddd;' : ''; ?>">Pending</a>
+            <a href="orders.php?status=processing" class="btn btn-sm <?php echo $statusFilter === 'processing' ? 'btn-info' : ''; ?>" style="<?php echo $statusFilter !== 'processing' ? 'background:#ddd;' : ''; ?>color:<?php echo $statusFilter === 'processing' ? '#fff' : '#333'; ?>">Processing</a>
+            <a href="orders.php?status=completed" class="btn btn-sm <?php echo $statusFilter === 'completed' ? 'btn-success' : ''; ?>" style="<?php echo $statusFilter !== 'completed' ? 'background:#ddd;' : ''; ?>">Completed</a>
+            <a href="orders.php?status=cancelled" class="btn btn-sm <?php echo $statusFilter === 'cancelled' ? 'btn-danger' : ''; ?>" style="<?php echo $statusFilter !== 'cancelled' ? 'background:#ddd;' : ''; ?>">Cancelled</a>
         </div>
 
-    </div>
+        <div class="table-container">
+            <div class="table-header">
+                <h2>Order List (<?php echo $orders->num_rows; ?>)</h2>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Customer</th>
+                        <th>Phone</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php while ($row = $orders->fetch_assoc()): ?>
+                    <tr>
+                        <td><strong>#<?php echo $row['id']; ?></strong></td>
+                        <td><?php echo htmlspecialchars($row['customer_name'] ?? 'Unknown'); ?></td>
+                        <td><?php echo htmlspecialchars($row['customer_phone'] ?? '-'); ?></td>
+                        <td><strong><?php echo formatCurrency($row['total_amount']); ?></strong></td>
+                        <td><?php echo getStatusBadge($row['status']); ?></td>
+                        <td><?php echo date('M d, Y H:i', strtotime($row['created_at'])); ?></td>
+                        <td>
+                            <a href="order_detail.php?id=<?php echo $row['id']; ?>" class="btn btn-primary btn-sm">View</a>
+                        </td>
+                    </tr>
+                    <?php endwhile; ?>
+                </tbody>
+            </table>
+        </div>
 
-</body>
-
-</html>
-<?php require_once '../includes/footer.php'; ?>
+<?php require_once 'includes/footer.php'; ?>

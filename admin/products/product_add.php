@@ -13,14 +13,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $description = sanitize($_POST['description']);
     $status = isset($_POST['status']) ? 1 : 0;
     $image = '';
-    $sku = sanitize($_POST['sku']);
-    $unit = sanitize($_POST['unit']);
-    $profit_margin = floatval($_POST['profit_margin']);
 
     if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
         $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
         $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
-
+        
         if (in_array($ext, $allowed)) {
             if (!is_dir('uploads')) mkdir('uploads', 0777, true);
             $image = 'product_' . time() . '.' . $ext;
@@ -28,28 +25,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    $stmt = $conn->prepare("
-INSERT INTO products 
-(sku, name, category_id, unit, price, profit_margin, stock_quantity, image, status) 
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-");
-
-    $stmt->bind_param(
-        "ssisdissi",
-        $sku,
-        $name,
-        $category_id,
-        $unit,
-        $price,
-        $profit_margin,
-        $stock,
-        $image,
-        $status
-    );
+    $stmt = $conn->prepare("INSERT INTO products (category_id, name, description, price, stock_quantity, image, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("issdisd", $category_id, $name, $description, $price, $stock, $image, $status);
 
     if ($stmt->execute()) {
         setFlashMessage('success', 'Product added successfully!');
-        header("Location: product.php");
+        header("Location: products.php");
         exit();
     } else {
         $error = 'Failed to add product.';
@@ -109,21 +90,6 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                             <input type="number" name="stock_quantity" min="0" class="form-control" required>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Mã sản phẩm (SKU)</label>
-                            <input type="text" name="sku" class="form-control" placeholder="VD: SP001">
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Đơn vị tính</label>
-                            <input type="text" name="unit" class="form-control" placeholder="Chai / Lon / Thùng">
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Tỉ lệ lợi nhuận (%)</label>
-                            <input type="number" name="profit_margin" step="0.01" min="0" class="form-control" placeholder="20">
-                        </div>
-
                     </div>
 
                     <!-- RIGHT -->
@@ -143,13 +109,14 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                             <input type="checkbox" name="status" class="form-check-input" checked>
                             <label class="form-check-label">Hiển thị (Active)</label>
                         </div>
+
                     </div>
 
                 </div>
 
                 <!-- BUTTON -->
                 <div class="mt-4 d-flex justify-content-between">
-                    <a href="product.php" class="btn btn-secondary">⬅ Quay lại</a>
+                    <a href="products.php" class="btn btn-secondary">⬅ Quay lại</a>
                     <button type="submit" class="btn btn-success">💾 Lưu sản phẩm</button>
                 </div>
 

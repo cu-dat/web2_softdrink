@@ -3,7 +3,7 @@ include "../config/database.php";
 
 $id = $_GET['id'];
 
-$conn->query("DELETE FROM users WHERE id = $id");
+$conn->query("DELETE FROM customers WHERE id = $id");
 
 header("Location: customer_list.php");
 ?>
