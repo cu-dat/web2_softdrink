@@ -17,7 +17,7 @@ if(!is_array($products)) $products = [];
         </div>
 
         <div class="carousel-item">
-            <img src="img/5ca3961b1e6e9abceba6b5ff743d1188.jpg" class="d-block w-100">
+            <img src="img/BANNER-COCACOCA-1810x602px-01-1024x341.png" class="d-block w-100">
         </div>
 
     </div>

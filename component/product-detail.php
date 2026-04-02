@@ -143,7 +143,7 @@ if(!$product){
 
         <div class="title"><?= $product['name'] ?></div>
 
-        <div class="text-muted">SKU: #<?= $product['id'] ?></div>
+        <div class="text-muted"> #<?= $product['id'] ?></div>
 
         <div class="price">
             <?= number_format($product['price']) ?>đ
