@@ -145,8 +145,8 @@ $total += $sub;
     }
     ?>
 
-    <img src="/web2_Softdrink-1/<?= $img ?>" 
-         onerror="this.onerror=null;this.src='/web2_Softdrink-1/assets/images/default.png'">
+    <img src="/web2_softdrink/<?= $img ?>" 
+         onerror="this.onerror=null;this.src='/web2_softdrink/assets/images/default.png'">
 
     <div class="cart-info">
         <div class="cart-name"><?= $p['name'] ?></div>

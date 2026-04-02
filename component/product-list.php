@@ -1,4 +1,7 @@
 <?php
+if(session_status() === PHP_SESSION_NONE){
+    session_start();
+}
 require_once(__DIR__ . "/../admin/config/database.php");
 
 $where = "WHERE 1";
@@ -50,23 +53,130 @@ while($row = $result->fetch_assoc()){
 ?>
 
 <style>
-.product-card{background:#fff;border-radius:10px;overflow:hidden;transition:0.3s;}
-.product-card:hover{transform:translateY(-6px);box-shadow:0 10px 25px rgba(0,0,0,0.15);}
-.product-img{position:relative;height:200px;display:flex;align-items:center;justify-content:center;}
-.product-img img{max-height:100%;object-fit:contain;}
-.overlay{position:absolute;width:100%;height:100%;background:rgba(0,0,0,0.35);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:0.3s;}
-.overlay a{color:#fff;margin-bottom:20px;text-decoration:none;}
-.product-img:hover .overlay{opacity:1;}
-.product-info{padding:15px;text-align:center;}
-.product-name{font-size:15px;font-weight:500;min-height:40px;}
-.product-price{color:#0f766e;font-size:20px;font-weight:bold;margin:10px 0;}
-.qty-box{display:flex;justify-content:center;align-items:center;gap:6px;margin-bottom:10px;}
-.qty-btn{width:28px;height:28px;border:none;background:#eee;border-radius:6px;cursor:pointer;}
+.product-card{
+    background:#fff;
+    border-radius:10px;
+    overflow:hidden;
+    transition:0.3s;
+    position:relative;
+}
+.product-card:hover{
+    transform:translateY(-6px);
+    box-shadow:0 10px 25px rgba(0,0,0,0.15);
+}
+
+/* ===== HẾT HÀNG ===== */
+.product-disabled{
+    opacity:0.5;
+}
+.product-disabled .btn-cart{
+    background:#ccc !important;
+    cursor:not-allowed;
+}
+.product-disabled::after{
+    content:"HẾT HÀNG";
+    position:absolute;
+    top:10px;
+    left:10px;
+    background:red;
+    color:#fff;
+    padding:4px 8px;
+    font-size:12px;
+    border-radius:5px;
+    z-index:10;
+}
+
+.product-img{
+    position:relative;
+    height:200px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+.product-img img{
+    max-height:100%;
+    object-fit:contain;
+}
+
+.overlay{
+    position:absolute;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.35);
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    opacity:0;
+    transition:0.3s;
+}
+.overlay a{
+    color:#fff;
+    margin-bottom:20px;
+    text-decoration:none;
+}
+.product-img:hover .overlay{
+    opacity:1;
+}
+
+.product-info{
+    padding:15px;
+    text-align:center;
+}
+.product-name{
+    font-size:15px;
+    font-weight:500;
+    min-height:40px;
+}
+.product-price{
+    color:#0f766e;
+    font-size:20px;
+    font-weight:bold;
+    margin:10px 0;
+}
+
+.qty-box{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:6px;
+    margin-bottom:10px;
+}
+.qty-btn{
+    width:28px;
+    height:28px;
+    border:none;
+    background:#eee;
+    border-radius:6px;
+    cursor:pointer;
+}
 .qty-btn:hover{background:#ddd;}
-.qty-input{width:40px;text-align:center;border:1px solid #ccc;border-radius:6px;}
-.btn-cart{background:#cbb48b;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;}
+
+.qty-input{
+    width:40px;
+    text-align:center;
+    border:1px solid #ccc;
+    border-radius:6px;
+}
+
+.btn-cart{
+    background:#cbb48b;
+    border:none;
+    padding:10px 20px;
+    border-radius:6px;
+    cursor:pointer;
+}
 .btn-cart:hover{background:#bda276;}
-.toast{position:fixed;top:20px;right:20px;background:#16a34a;color:#fff;padding:10px 18px;border-radius:8px;z-index:9999;}
+
+.toast{
+    position:fixed;
+    top:20px;
+    right:20px;
+    background:#16a34a;
+    color:#fff;
+    padding:10px 18px;
+    border-radius:8px;
+    z-index:9999;
+}
 </style>
 
 <div class="row">
@@ -78,7 +188,8 @@ $img = empty($img) ? "assets/images/default.png" : "assets/images/" . $img;
 ?>
 
 <div class="col-md-3 mb-4">
-    <div class="product-card">
+    <div class="product-card <?= $p['status'] == 0 ? 'product-disabled' : '' ?>">
+
         <div class="product-img">
             <img src="<?= $img ?>" onerror="this.src='assets/images/default.png'">
             <div class="overlay">
@@ -96,10 +207,16 @@ $img = empty($img) ? "assets/images/default.png" : "assets/images/" . $img;
                 <button class="qty-btn" onclick="changeQty(<?= $p['id'] ?>,1)">+</button>
             </div>
 
-            <button class="btn-cart" onclick="addToCartList(<?= $p['id'] ?>)">🛒 Thêm</button>
+            <?php if($p['status'] == 1): ?>
+                <button class="btn-cart" onclick="addToCartList(event, <?= $p['id'] ?>)">🛒 Thêm</button>
+            <?php else: ?>
+                <button class="btn-cart" disabled>❌ Không bán</button>
+            <?php endif; ?>
+
         </div>
     </div>
 </div>
+
 <?php endforeach; ?>
 
 </div>
@@ -108,24 +225,40 @@ $img = empty($img) ? "assets/images/default.png" : "assets/images/" . $img;
 function changeQty(id,n){
     let i=document.getElementById("qty-"+id);
     let v=parseInt(i.value)||1;
-    v+=n;if(v<1)v=1;i.value=v;
+    v+=n;
+    if(v<1)v=1;
+    i.value=v;
 }
 
 function toast(msg){
     let t=document.createElement("div");
-    t.className="toast";t.innerText=msg;
+    t.className="toast";
+    t.innerText=msg;
     document.body.appendChild(t);
     setTimeout(()=>t.remove(),1500);
 }
 
-function addToCartList(id){
+function addToCartList(e, id){
+
+    // 🚫 CHƯA LOGIN → CHẶN NGAY
+    <?php if(empty($_SESSION['user'])): ?>
+        toast("⚠️ Vui lòng đăng nhập để thêm sản phẩm");
+        return;
+    <?php endif; ?>
+
+    let btn = e.target;
+    if(btn.hasAttribute("disabled")) return;
+
     let qty=document.getElementById("qty-"+id).value;
+
     fetch(`action/cart.php?type=add&id=${id}&qty=${qty}`)
-    .then(r=>r.json()).then(d=>{
-        if(d.status==="not_login"){toast("🔒 Login");return;}
+    .then(r=>r.json())
+    .then(d=>{
         let b=document.getElementById("cart-count");
-        if(b)b.innerText=d.count||0;
-        if(typeof reloadCart==="function")reloadCart();
+        if(b) b.innerText=d.count || 0;
+
+        if(typeof reloadCart==="function") reloadCart();
+
         toast("🛒 +"+qty);
     });
 }

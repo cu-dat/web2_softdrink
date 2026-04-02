@@ -41,72 +41,66 @@ $statusMap = [
 <style>
 body{background:#f5f5f5;font-family:Arial;}
 
-.order-container{
-    max-width:900px;
-    margin:30px auto;
-}
+.order-container{max-width:900px;margin:30px auto;}
 
-.order-filter{
-    margin-bottom:20px;
-}
+.order-filter{margin-bottom:20px;}
 
 .order-filter a{
-    padding:6px 12px;
-    border-radius:6px;
-    text-decoration:none;
-    background:#eee;
-    margin-right:5px;
-    color:#000;
+    padding:6px 12px;border-radius:6px;text-decoration:none;
+    background:#eee;margin-right:5px;color:#000;
 }
 
-.order-filter a.active{
-    background:#0f766e;
-    color:#fff;
-}
+.order-filter a.active{background:#0f766e;color:#fff;}
 
 .order-card{
-    background:#fff;
-    padding:15px;
-    border-radius:10px;
-    margin-bottom:15px;
-    box-shadow:0 5px 15px rgba(0,0,0,0.1);
+    background:#fff;padding:15px;border-radius:10px;
+    margin-bottom:15px;box-shadow:0 5px 15px rgba(0,0,0,0.1);
 }
 
 .order-header{
-    display:flex;
-    justify-content:space-between;
-    margin-bottom:10px;
-    font-weight:bold;
+    display:flex;justify-content:space-between;
+    margin-bottom:10px;font-weight:bold;
 }
 
-.order-items{
-    border-top:1px solid #eee;
-    padding-top:10px;
-}
+.order-items{border-top:1px solid #eee;padding-top:10px;}
 
-.order-item{
-    display:flex;
-    justify-content:space-between;
-    margin-bottom:5px;
-}
+.order-item{display:flex;justify-content:space-between;margin-bottom:5px;}
 
-.status{
-    font-weight:bold;
-}
+.status{font-weight:bold;}
 
-.total{
-    text-align:right;
-    font-weight:bold;
-    margin-top:10px;
-}
+.total{text-align:right;font-weight:bold;margin-top:10px;}
 
 .btn-cancel{
-    background:red;
+    background:red;color:#fff;border:none;
+    padding:6px 10px;border-radius:6px;cursor:pointer;
+}
+
+/* MODAL */
+#cancelModal{
+    display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+    background:rgba(0,0,0,0.5);z-index:9999;
+    justify-content:center;align-items:center;
+}
+.modal-box{
+    background:#fff;padding:20px;border-radius:12px;width:300px;text-align:center;
+}
+.modal-actions{margin-top:15px;display:flex;justify-content:space-around;}
+.modal-actions button{
+    padding:8px 15px;border:none;border-radius:6px;cursor:pointer;
+}
+.btn-ok{background:#2563eb;color:#fff;}
+.btn-close{background:#ccc;}
+
+/* TOAST */
+.toast{
+    position:fixed;
+    top:20px;
+    right:20px;
+    background:#16a34a;
     color:#fff;
-    border:none;
-    padding:6px 10px;
-    border-radius:6px;
-    cursor:pointer;
+    padding:10px 18px;
+    border-radius:8px;
+    z-index:9999;
 }
 </style>
 
@@ -114,7 +108,6 @@ body{background:#f5f5f5;font-family:Arial;}
 
 <h3>📦 Đơn hàng của bạn</h3>
 
-<!-- FILTER -->
 <div class="order-filter">
     <a href="index.php?page=order" class="<?= !$status ? 'active' : '' ?>">Tất cả</a>
     <a href="index.php?page=order&status=pending" class="<?= $status=='pending'?'active':'' ?>">Đang xử lý</a>
@@ -168,7 +161,6 @@ $items = $conn->query("
     Tổng: <?= number_format($order['total_amount']) ?>đ
 </div>
 
-<!-- HỦY -->
 <?php if(strtolower(trim($order['status'])) == 'pending'): ?>
 <button class="btn-cancel" onclick="cancelOrder(<?= $order['id'] ?>)">
     Hủy đơn
@@ -178,30 +170,60 @@ $items = $conn->query("
 </div>
 
 <?php endwhile; ?>
-
 <?php endif; ?>
 
 </div>
 
-<<script>
-function cancelOrder(id){
-    if(!confirm("Hủy đơn này?")) return;
+<!-- MODAL -->
+<div id="cancelModal">
+    <div class="modal-box">
+        <h4>Xác nhận</h4>
+        <p>Hủy đơn này?</p>
+        <div class="modal-actions">
+            <button class="btn-ok" onclick="confirmCancel()">OK</button>
+            <button class="btn-close" onclick="closeModal()">Hủy</button>
+        </div>
+    </div>
+</div>
 
-    fetch("/WEB2_SOFTDRINK/action/cancel-order.php?id=" + id)
+<script>
+let cancelId = null;
+
+function toast(msg){
+    let t=document.createElement("div");
+    t.className="toast";
+    t.innerText=msg;
+    document.body.appendChild(t);
+    setTimeout(()=>t.remove(),1500);
+}
+
+function cancelOrder(id){
+    cancelId = id;
+    document.getElementById("cancelModal").style.display = "flex";
+}
+
+function closeModal(){
+    document.getElementById("cancelModal").style.display = "none";
+    cancelId = null;
+}
+
+function confirmCancel(){
+    if(!cancelId) return;
+
+    fetch("/WEB2_SOFTDRINK/action/cancel-order.php?id=" + cancelId)
     .then(res => res.json())
     .then(data=>{
-        console.log("DEBUG:", data);
-
         if(data.status==="success"){
-            alert("✅ Hủy thành công!");
-            location.reload();
+            toast("✅ Hủy thành công!");
+            setTimeout(()=>location.reload(),1000);
         }else{
-            alert("❌ Lỗi: " + (data.msg || "Không xác định"));
+            toast("❌ " + (data.msg || "Lỗi"));
         }
     })
     .catch(err=>{
-        console.error(err);
-        alert("❌ Lỗi server!");
+        toast("❌ Lỗi server!");
     });
+
+    closeModal();
 }
 </script>
