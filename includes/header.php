@@ -43,7 +43,7 @@ $count = array_sum($_SESSION['cart'] ?? []);
 }
 </style>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-black px-4">
+<nav class="navbar navbar-expand-lg navbar-dark bg-black px-5">
 
     <a class="navbar-brand" href="index.php">
     <img src="img/logo.jpg" class="logo-img" alt="Logo">
@@ -138,18 +138,18 @@ $count = array_sum($_SESSION['cart'] ?? []);
 
 <script>
 if(typeof BASE === "undefined"){
-    var BASE = "/web2_Softdrink/";
+    var BASE = "/web2_softdrink/";
 }
 
-// ===== TOAST =====
-function showToast(message){
+// ===== TOAST XỊN =====
+function showToast(message, type="success"){
     let toast = document.createElement("div");
     toast.innerText = message;
 
     toast.style.position = "fixed";
     toast.style.top = "20px";
     toast.style.right = "20px";
-    toast.style.background = "#16a34a";
+    toast.style.background = (type === "error") ? "#dc2626" : "#16a34a";
     toast.style.color = "#fff";
     toast.style.padding = "12px 20px";
     toast.style.borderRadius = "8px";
@@ -157,12 +157,20 @@ function showToast(message){
     toast.style.zIndex = "9999";
     toast.style.fontSize = "14px";
     toast.style.opacity = "0";
+    toast.style.transform = "translateY(-20px)";
     toast.style.transition = "0.3s";
 
     document.body.appendChild(toast);
 
-    setTimeout(()=> toast.style.opacity = "1", 10);
-    setTimeout(()=> toast.remove(), 2000);
+    setTimeout(()=> {
+        toast.style.opacity = "1";
+        toast.style.transform = "translateY(0)";
+    }, 10);
+
+    setTimeout(()=>{
+        toast.style.opacity = "0";
+        setTimeout(()=> toast.remove(), 300);
+    }, 1800);
 }
 
 // ===== LOAD COUNT =====
@@ -174,47 +182,58 @@ function loadCartCount(){
         if(badge){
             badge.innerText = data.count ?? 0;
         }
-    })
-    .catch(err => console.log("COUNT ERROR:", err));
+    });
 }
 
-// ===== UPDATE CART =====
 function updateCart(type, id){
+
     fetch(BASE + "action/cart.php?type=" + type + "&id=" + id)
     .then(res => res.json())
     .then(data => {
 
         if(data.status !== "success"){
-            alert("Lỗi giỏ hàng!");
+            showToast("❌ Lỗi giỏ hàng!", "error");
             return;
         }
 
-        let badge = document.getElementById("cart-count");
-        if(badge){
-            badge.innerText = data.count ?? 0;
+        // 🔥 FIX CHÍNH: load lại count thật
+        loadCartCount();
+
+        // reload UI cart
+        reloadCart();
+
+        // toast
+        if(type === "increase"){
+            showToast("➕ Tăng số lượng");
+        }
+        else if(type === "decrease"){
+            showToast("➖ Giảm số lượng");
+        }
+        else if(type === "remove"){
+            showToast("🗑️ Đã xoá");
         }
 
-        showToast("🛒 Đã thêm sản phẩm");
-        reloadCart();
+    })
+    .catch(()=>{
+        showToast("❌ Lỗi server!", "error");
     });
 }
 
-// ===== RELOAD CART =====
+
+// ===== RELOAD CART (FIX CHUẨN) =====
 function reloadCart(){
+
     fetch(BASE + "component/cart.php?nocache=" + Date.now())
     .then(res => res.text())
     .then(html => {
 
-        let temp = document.createElement("div");
-        temp.innerHTML = html;
-
-        let newCart = temp.querySelector(".cart-box");
-
-        if(newCart){
-            let container = document.getElementById("cartContainer");
-            container.innerHTML = "";
-            container.appendChild(newCart);
+        let container = document.getElementById("cartContainer");
+        if(container){
+            container.innerHTML = html;
         }
+    })
+    .catch(()=>{
+        console.log("Reload cart lỗi");
     });
 }
 </script>

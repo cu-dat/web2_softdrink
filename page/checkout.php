@@ -250,7 +250,7 @@ function placeOrder(){
             showToast("🎉 Đặt hàng thành công!");
 
             setTimeout(()=>{
-               window.location.href = "index.php?page=orders";
+               window.location.href = "index.php?page=order";
             }, 1500);
         }else{
             showToast("❌ Lỗi đặt hàng!");

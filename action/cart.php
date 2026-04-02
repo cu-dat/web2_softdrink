@@ -1,5 +1,4 @@
 <?php
-// ===== FIX SESSION (QUAN TRỌNG) =====
 ini_set('session.cookie_path', '/');
 session_start();
 
@@ -7,16 +6,6 @@ $type = $_GET['type'] ?? '';
 $id   = (int)($_GET['id'] ?? 0);
 $qty  = max(1, (int)($_GET['qty'] ?? 1));
 
-// ===== CHẶN ID LỖI =====
-if($id <= 0){
-    echo json_encode([
-        "status" => "error",
-        "message" => "invalid_id"
-    ]);
-    exit;
-}
-
-// ===== USER =====
 $user_id = $_SESSION['user']['id'] ?? 0;
 
 // ===== CHECK LOGIN =====
@@ -27,9 +16,26 @@ if($type == "check_login"){
     exit;
 }
 
+// ===== COUNT (KHÔNG CẦN ID) =====
+if($type == "count"){
+    echo json_encode([
+        "count" => array_sum($_SESSION['cart'] ?? [])
+    ]);
+    exit;
+}
+
 // ❌ CHƯA LOGIN
 if(!$user_id){
     echo json_encode(["status"=>"not_login"]);
+    exit;
+}
+
+// ===== CHẶN ID LỖI (CHỈ ÁP DỤNG ACTION) =====
+if(in_array($type, ["add","increase","decrease","remove"]) && $id <= 0){
+    echo json_encode([
+        "status" => "error",
+        "message" => "invalid_id"
+    ]);
     exit;
 }
 
@@ -38,25 +44,13 @@ if(!isset($_SESSION['cart'])){
     $_SESSION['cart'] = [];
 }
 
-// ===== COUNT =====
-if($type == "count"){
-    echo json_encode([
-        "count" => array_sum($_SESSION['cart'])
-    ]);
-    exit;
-}
-
 // ===== ACTION =====
 if($type == "add"){
     $_SESSION['cart'][$id] = ($_SESSION['cart'][$id] ?? 0) + $qty;
 }
 
 if($type == "increase"){
-    if(isset($_SESSION['cart'][$id])){
-        $_SESSION['cart'][$id]++;
-    }else{
-        $_SESSION['cart'][$id] = 1;
-    }
+    $_SESSION['cart'][$id] = ($_SESSION['cart'][$id] ?? 0) + 1;
 }
 
 if($type == "decrease"){

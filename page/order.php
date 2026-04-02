@@ -210,7 +210,7 @@ function closeModal(){
 function confirmCancel(){
     if(!cancelId) return;
 
-    fetch("/WEB2_SOFTDRINK/action/cancel-order.php?id=" + cancelId)
+    fetch("/web2_softdrink/action/cancel-order.php?id=" + cancelId)
     .then(res => res.json())
     .then(data=>{
         if(data.status==="success"){

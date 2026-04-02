@@ -67,6 +67,7 @@ if(session_status() === PHP_SESSION_NONE){
     text-decoration:none;
 }
 
+/* toast */
 .toast{
     position:fixed;
     top:20px;
@@ -76,7 +77,15 @@ if(session_status() === PHP_SESSION_NONE){
     padding:10px 20px;
     border-radius:8px;
     z-index:9999;
+    opacity:0;
+    transform:translateY(-20px);
+    transition:0.3s;
 }
+.toast.show{
+    opacity:1;
+    transform:translateY(0);
+}
+.toast.error{background:#dc2626;}
 </style>
 
 <?php
@@ -135,9 +144,7 @@ $total += $sub;
 <div class="cart-item">
 
     <?php
-    // ✅ CHỈ FIX ẢNH (KHÔNG ĐỤNG GÌ KHÁC)
     $img = $p['image'] ?? '';
-
     if(empty($img)){
         $img = "assets/images/default.png";
     }else{
@@ -179,3 +186,50 @@ $total += $sub;
 <?php endif; ?>
 
 </div>
+
+<script>
+// ===== TOAST =====
+function toast(msg, type="success"){
+    let t=document.createElement("div");
+    t.className="toast";
+    if(type==="error") t.classList.add("error");
+    t.innerText=msg;
+    document.body.appendChild(t);
+
+    setTimeout(()=>t.classList.add("show"),10);
+    setTimeout(()=>{
+        t.classList.remove("show");
+        setTimeout(()=>t.remove(),300);
+    },1500);
+}
+
+// ===== RELOAD CART =====
+function reloadCart(){
+    fetch("component/cart.php?rand=" + Math.random())
+    .then(res => res.text())
+    .then(html => {
+        let box = document.getElementById("cart-dropdown");
+        if(box) box.innerHTML = html;
+    });
+}
+
+// ===== UPDATE CART =====
+function updateCart(type, id){
+
+    fetch(`action/cart.php?type=${type}&id=${id}`)
+    .then(res => res.json())
+    .then(data => {
+
+        // update số lượng icon
+        let b=document.getElementById("cart-count");
+        if(b) b.innerText=data.count || 0;
+
+        // reload lại UI cart (FIX LỖI CHÍNH)
+        reloadCart();
+
+    })
+    .catch(()=>{
+        toast("❌ Lỗi cập nhật giỏ hàng!", "error");
+    });
+}
+</script>
