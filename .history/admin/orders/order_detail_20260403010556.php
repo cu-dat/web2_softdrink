@@ -23,11 +23,13 @@ if (!$order) {
     die("Đơn hàng không tồn tại!");
 }
 
-// ===== LẤY CHI TIẾT SẢN PHẨM (LẤY GIÁ HIỆN TẠI TỪ PRODUCTS) =====
+// ===== LẤY CHI TIẾT SẢN PHẨM TRONG ĐƠN =====
+// Dùng prepared statement để tránh SQL injection
 $detailStmt = $conn->prepare("
     SELECT 
         d.quantity,
-        p.price AS price,   -- ✅ lấy giá hiện tại từ bảng products
+        d.price,
+        d.subtotal,
         p.name,
         p.image
     FROM order_details d
@@ -43,24 +45,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['status'])) {
     $newStatus = $_POST['status'];
     $currentStatus = $order['status'];
 
+    // Không cho sửa nếu đơn đã hoàn thành hoặc đã huỷ
     if (in_array($currentStatus, ['completed', 'cancelled'])) {
         die("Không thể cập nhật đơn hàng đã hoàn tất hoặc đã huỷ!");
     }
 
+    // Validate status hợp lệ
     $allowedStatus = ['pending', 'confirmed', 'completed', 'cancelled'];
     if (!in_array($newStatus, $allowedStatus)) {
         die("Trạng thái không hợp lệ!");
     }
 
+    // Bắt đầu transaction để đảm bảo toàn vẹn dữ liệu
     $conn->begin_transaction();
 
     try {
+        // Cập nhật trạng thái đơn hàng
         $updateStmt = $conn->prepare("UPDATE orders SET status = ? WHERE id = ?");
         $updateStmt->bind_param("si", $newStatus, $id);
         $updateStmt->execute();
 
+        // Nếu chuyển sang completed -> trừ kho trong bảng inventory
         if ($newStatus === 'completed' && $currentStatus !== 'completed') {
-            // Kiểm tra tồn kho
+            // Kiểm tra tồn kho đủ không (tuỳ chọn)
             $checkStmt = $conn->prepare("
                 SELECT inv.product_id, inv.stock, d.quantity
                 FROM order_details d
@@ -80,6 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['status'])) {
                 throw new Exception("Một số sản phẩm không đủ tồn kho để hoàn thành đơn hàng!");
             }
 
+            // Thực hiện trừ kho
             $updateStockStmt = $conn->prepare("
                 UPDATE inventory inv
                 JOIN order_details d ON inv.product_id = d.product_id
@@ -155,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['status'])) {
                 </div>
             </div>
 
-            <!-- Form cập nhật trạng thái -->
+            <!-- Form cập nhật trạng thái (nếu chưa hoàn thành/huỷ) -->
             <?php if (!in_array($order['status'], ['completed', 'cancelled'])): ?>
                 <form method="POST" class="mb-4 p-3 border rounded bg-white">
                     <div class="row g-2 align-items-end">
@@ -169,53 +177,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['status'])) {
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <button type="submit" class="btn btn-success w-100">Cập nhật</button>
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="fas fa-save"></i> Cập nhật
+                            </button>
                         </div>
                     </div>
                 </form>
             <?php else: ?>
-                <div class="alert alert-secondary">⚠️ Đơn hàng đã hoàn tất hoặc bị huỷ, không thể chỉnh sửa trạng thái.</div>
+                <div class="alert alert-secondary">
+                    ⚠️ Đơn hàng đã hoàn tất hoặc bị huỷ, không thể chỉnh sửa trạng thái.
+                </div>
             <?php endif; ?>
 
-            <!-- Bảng chi tiết sản phẩm với giá hiện tại -->
-            <div class="table-responsive">
-                <table class="table table-bordered text-center align-middle">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Tên sản phẩm</th>
-                            <th style="width: 100px">Số lượng</th>
-                            <th style="width: 150px">Đơn giá (hiện tại)</th>
-                            <th style="width: 180px">Thành tiền</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php
-                        $total = 0;
-                        while ($item = $details->fetch_assoc()):
-                            // Sử dụng giá hiện tại từ products
-                            $price = $item['price'] ?? 0;
-                            $subtotal = $item['quantity'] * $price;
-                            $total += $subtotal;
-                        ?>
-                            <tr>
-                                <td><?= htmlspecialchars($item['name']) ?></td>
-                                <td><?= $item['quantity'] ?></td>
-                                <td><?= number_format($price, 0, ',', '.') ?> ₫</td>
-                                <td><?= number_format($subtotal, 0, ',', '.') ?> ₫</td>
-                            </tr>
-                        <?php endwhile; ?>
-                        <?php if ($details->num_rows == 0): ?>
-                            <tr><td colspan="4" class="text-muted">Không có sản phẩm nào trong đơn hàng.</td></tr>
-                        <?php endif; ?>
-                    </tbody>
-                    <tfoot class="table-light">
-                        <tr>
-                            <th colspan="3" class="text-end">Tổng cộng:</th>
-                            <th class="text-danger fs-5"><?= number_format($total, 0, ',', '.') ?> ₫</th>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
+            <!-- Bảng chi tiết sản phẩm -->
+<div class="table-responsive">
+    <table class="table table-bordered text-center align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>Tên sản phẩm</th>
+                <th style="width: 100px">Số lượng</th>
+                <th style="width: 150px">Đơn giá</th>
+                <th style="width: 180px">Thành tiền</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php
+            $total = 0;
+            while ($item = $details->fetch_assoc()):
+                $subtotal = $item['quantity'] * $item['price'];
+                $total += $subtotal;
+            ?>
+                <tr>
+                    <td><?= htmlspecialchars($item['name']) ?></td>
+                    <td><?= $item['quantity'] ?></td>
+                    <td><?= number_format($item['price'], 0, ',', '.') ?> ₫</td>
+                    <td><?= number_format($subtotal, 0, ',', '.') ?> ₫</td>
+                </tr>
+            <?php endwhile; ?>
+            <?php if ($details->num_rows == 0): ?>
+                <tr><td colspan="4" class="text-muted">Không có sản phẩm nào trong đơn hàng.</td></tr>
+            <?php endif; ?>
+        </tbody>
+        <tfoot class="table-light">
+            <tr>
+                <th colspan="3" class="text-end">Tổng cộng:</th>
+                <th class="text-danger fs-5"><?= number_format($total, 0, ',', '.') ?> ₫</th>
+            </tr>
+        </tfoot>
+    </table>
+</div>
         </div>
     </div>
 </div>
