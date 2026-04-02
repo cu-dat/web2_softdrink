@@ -37,14 +37,21 @@ foreach($cart as $id => $qty){
     $id = (int)$id;
     $qty = (int)$qty;
 
-    $res = $conn->query("SELECT * FROM products WHERE id=$id");
+    /* ===== FIX: JOIN INVENTORY ===== */
+    $res = $conn->query("
+        SELECT p.*, IFNULL(i.stock,0) as stock
+        FROM products p
+        LEFT JOIN inventory i ON p.id = i.product_id
+        WHERE p.id = $id
+    ");
+
     if(!$res) continue;
 
     $p = $res->fetch_assoc();
     if(!$p) continue;
 
-    // 🚨 CHECK KHO NGAY TỪ ĐẦU
-    if($p['stock_quantity'] < $qty){
+    // 🚨 CHECK KHO TỪ INVENTORY
+    if($p['stock'] < $qty){
         echo json_encode([
             "status"=>"out_of_stock",
             "product"=>$p['name']
@@ -55,7 +62,6 @@ foreach($cart as $id => $qty){
     $subtotal = $p['price'] * $qty;
     $total += $subtotal;
 
-    // lưu tạm để xử lý sau
     $products[] = [
         "id"=>$id,
         "qty"=>$qty,
@@ -64,7 +70,7 @@ foreach($cart as $id => $qty){
     ];
 }
 
-// ===== START TRANSACTION (QUAN TRỌNG) =====
+// ===== START TRANSACTION =====
 $conn->begin_transaction();
 
 try{
@@ -77,7 +83,7 @@ try{
 
     $order_id = $conn->insert_id;
 
-    // ===== INSERT DETAILS + TRỪ KHO =====
+    // ===== INSERT DETAILS + TRỪ KHO INVENTORY =====
     foreach($products as $p){
 
         $id  = $p['id'];
@@ -89,11 +95,11 @@ try{
             VALUES($order_id, $id, $qty, {$p['price']}, {$p['subtotal']})
         ");
 
-        // 🔥 TRỪ KHO
+        /* ===== FIX: TRỪ KHO INVENTORY ===== */
         $conn->query("
-            UPDATE products 
-            SET stock_quantity = stock_quantity - $qty
-            WHERE id = $id
+            UPDATE inventory 
+            SET stock = stock - $qty
+            WHERE product_id = $id
         ");
     }
 
@@ -110,7 +116,6 @@ try{
 
 }catch(Exception $e){
 
-    // rollback nếu lỗi
     $conn->rollback();
 
     echo json_encode([

@@ -1,17 +1,18 @@
 <?php
-$products = include(__DIR__ . "/../data/products_db.php");
-if(!$products) $products = [];
+require_once(__DIR__ . "/../admin/config/database.php");
 
-$id = $_GET['id'] ?? 0;
+/* ===== LẤY ID ===== */
+$id = (int)($_GET['id'] ?? 0);
 
-$product = null;
+/* ===== LẤY PRODUCT + STOCK ===== */
+$sql = "SELECT p.*, IFNULL(i.stock,0) as stock
+FROM products p
+LEFT JOIN inventory i ON p.id = i.product_id
+WHERE p.id = $id
+LIMIT 1";
 
-foreach($products as $p){
-    if($p['id'] == $id){
-        $product = $p;
-        break;
-    }
-}
+$result = $conn->query($sql);
+$product = $result->fetch_assoc();
 
 if(!$product){
     echo "<div class='alert alert-danger'>Không tìm thấy sản phẩm!</div>";
@@ -27,6 +28,7 @@ if(!$product){
     box-shadow:0 2px 10px rgba(0,0,0,0.1);
     display:flex;
     gap:40px;
+    margin-top:20px; /* ✅ thêm cho đẹp */
 }
 
 .detail-img{
@@ -117,13 +119,17 @@ if(!$product){
 }
 </style>
 
+<!-- ✅ FIX CHUẨN: BỌC CONTAINER GIỐNG HEADER/FOOTER -->
+
+<div class="container-fluid px-5">
+
+```
 <div class="detail-box">
 
     <!-- IMAGE -->
     <div class="detail-img">
 
         <?php
-        // ✅ FIX ẢNH
         $img = $product['image'] ?? '';
 
         if(empty($img)){
@@ -149,6 +155,10 @@ if(!$product){
             <?= number_format($product['price']) ?>đ
         </div>
 
+        <?php
+        $isOut = ($product['status'] == 0 || $product['stock'] <= 0);
+        ?>
+
         <div class="qty-box">
             <span>Số lượng</span>
 
@@ -159,15 +169,24 @@ if(!$product){
             <button class="qty-btn" onclick="changeQty(1)">+</button>
         </div>
 
-        <button class="add-btn" onclick="addToCart(<?= $product['id'] ?>)">
-            🛒 Thêm vào giỏ
-        </button>
+        <?php if(!$isOut): ?>
+            <button class="add-btn" onclick="addToCart(<?= $product['id'] ?>)">
+                🛒 Thêm vào giỏ
+            </button>
+        <?php else: ?>
+            <button class="add-btn" disabled>
+                ❌ Hết hàng
+            </button>
+        <?php endif; ?>
 
         <div class="desc">
             Nước giải khát giúp bù nước và năng lượng nhanh chóng.
         </div>
 
     </div>
+
+</div>
+```
 
 </div>
 

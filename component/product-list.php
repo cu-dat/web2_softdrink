@@ -30,16 +30,23 @@ if(!empty($_GET['keyword'])){
 $perPage = 5;
 $pageNum = max(1, (int)($_GET['p'] ?? 1));
 
-$countSql = "SELECT COUNT(*) as total FROM products p 
-LEFT JOIN categories c ON p.category_id = c.id $where";
+/* ===== FIX: thêm inventory ===== */
+$countSql = "SELECT COUNT(*) as total 
+FROM products p 
+LEFT JOIN categories c ON p.category_id = c.id 
+LEFT JOIN inventory i ON p.id = i.product_id
+$where";
+
 $totalProducts = $conn->query($countSql)->fetch_assoc()['total'];
 
 $totalPages = max(1, ceil($totalProducts / $perPage));
 $start = ($pageNum - 1) * $perPage;
 
-$sql = "SELECT p.*, c.name as category_name 
+/* ===== FIX: lấy stock ===== */
+$sql = "SELECT p.*, c.name as category_name, IFNULL(i.stock,0) as stock
 FROM products p
 LEFT JOIN categories c ON p.category_id = c.id
+LEFT JOIN inventory i ON p.id = i.product_id
 $where
 ORDER BY p.id DESC
 LIMIT $start, $perPage";
@@ -173,9 +180,27 @@ while($row = $result->fetch_assoc()){
     right:20px;
     background:#16a34a;
     color:#fff;
-    padding:10px 18px;
-    border-radius:8px;
+    padding:12px 20px;
+    border-radius:10px;
     z-index:9999;
+    font-size:14px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.2);
+    opacity:0;
+    transform:translateY(-20px);
+    transition:all 0.3s ease;
+}
+
+.toast.show{
+    opacity:1;
+    transform:translateY(0);
+}
+
+.toast.error{
+    background:#dc2626;
+}
+
+.toast.warn{
+    background:#f59e0b;
 }
 </style>
 
@@ -185,10 +210,13 @@ while($row = $result->fetch_assoc()){
 <?php
 $img = $p['image'] ?? '';
 $img = empty($img) ? "assets/images/default.png" : "assets/images/" . $img;
+
+/* ===== LOGIC DUY NHẤT SỬA ===== */
+$isOut = ($p['status'] == 0 || $p['stock'] <= 0);
 ?>
 
 <div class="col-md-3 mb-4">
-    <div class="product-card <?= $p['status'] == 0 ? 'product-disabled' : '' ?>">
+    <div class="product-card <?= $isOut ? 'product-disabled' : '' ?>">
 
         <div class="product-img">
             <img src="<?= $img ?>" onerror="this.src='assets/images/default.png'">
@@ -207,7 +235,7 @@ $img = empty($img) ? "assets/images/default.png" : "assets/images/" . $img;
                 <button class="qty-btn" onclick="changeQty(<?= $p['id'] ?>,1)">+</button>
             </div>
 
-            <?php if($p['status'] == 1): ?>
+            <?php if(!$isOut): ?> 
                 <button class="btn-cart" onclick="addToCartList(event, <?= $p['id'] ?>)">🛒 Thêm</button>
             <?php else: ?>
                 <button class="btn-cart" disabled>❌ Không bán</button>
@@ -230,41 +258,49 @@ function changeQty(id,n){
     i.value=v;
 }
 
-function toast(msg){
-    let t=document.createElement("div");
-    t.className="toast";
-    t.innerText=msg;
+function toast(msg, type="success"){
+    let t = document.createElement("div");
+    t.className = "toast";
+
+    if(type === "error") t.classList.add("error");
+    if(type === "warn") t.classList.add("warn");
+
+    t.innerText = msg;
+
     document.body.appendChild(t);
-    setTimeout(()=>t.remove(),1500);
+
+    setTimeout(()=> t.classList.add("show"), 10);
+
+    setTimeout(()=>{
+        t.classList.remove("show");
+        setTimeout(()=> t.remove(), 300);
+    }, 2000);
 }
 
 function addToCartList(e, id){
+
     <?php if(empty($_SESSION['user'])): ?>
-        toast("⚠️ Vui lòng đăng nhập để thêm sản phẩm");
+        toast("⚠️ Vui lòng đăng nhập!", "warn");
         return;
     <?php endif; ?>
 
     let btn = e.target;
     if(btn.hasAttribute("disabled")) return;
 
-    let qty = document.getElementById("qty-"+id).value;
+    let qty=document.getElementById("qty-"+id).value;
 
-    // ⬇️ SỬA ĐƯỜNG DẪN: dùng BASE
-    fetch(BASE + "action/cart.php?type=add&id=" + id + "&qty=" + qty)
-    .then(r => r.json())
-    .then(d => {
-        if(d.status !== "success") {
-            toast("❌ " + (d.message || "Lỗi thêm giỏ hàng"));
-            return;
-        }
-        let b = document.getElementById("cart-count");
-        if(b) b.innerText = d.count || 0;
-        if(typeof reloadCart === "function") reloadCart();
-        toast("🛒 +" + qty);
+    fetch(`action/cart.php?type=add&id=${id}&qty=${qty}`)
+    .then(r=>r.json())
+    .then(d=>{
+        let b=document.getElementById("cart-count");
+        if(b) b.innerText=d.count || 0;
+
+        if(typeof reloadCart==="function") reloadCart();
+
+        toast("🛒 Đã thêm " + qty + " sản phẩm");
     })
-    .catch(err => {
-        console.error(err);
-        toast("⚠️ Lỗi kết nối");
+    .catch(()=>{
+        toast("❌ Lỗi thêm giỏ hàng!", "error");
     });
 }
 </script>

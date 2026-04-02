@@ -73,15 +73,15 @@ $conn->begin_transaction();
 
 try{
 
-    // 🔄 HOÀN KHO
+    // 🔄 HOÀN KHO (FIX: inventory)
     while($item = $items->fetch_assoc()){
         $pid = (int)$item['product_id'];
         $qty = (int)$item['quantity'];
 
         $updateStock = "
-            UPDATE products
-            SET stock_quantity = stock_quantity + $qty
-            WHERE id = $pid
+            UPDATE inventory
+            SET stock = stock + $qty
+            WHERE product_id = $pid
         ";
 
         if(!$conn->query($updateStock)){
