@@ -23,7 +23,7 @@ $recentOrders = $conn->query("
 ");
 
 // Sản phẩm sắp hết hàng
-$lowStock = $conn->query("SELECT * FROM products p LEFT JOIN inventory inv ON p.id = inv.product_id WHERE inv.stock <= 50 ORDER BY inv.stock ASC LIMIT 5");
+$lowStock = $conn->query("SELECT * FROM inventory WHERE stock <= 50 ORDER BY stock ASC LIMIT 5");
 ?>
 
 <div class="container-fluid mt-4">
@@ -136,7 +136,7 @@ $lowStock = $conn->query("SELECT * FROM products p LEFT JOIN inventory inv ON p.
                     </tr>
                 </thead>
                 <tbody>
-                <?php while ($product = $lowStock->fetch_assoc()): ?>
+                <?php while ($row = $lowStock->fetch_assoc()): ?>
                     <tr>
                         <td>
                             <?php echo htmlspecialchars($product['name']); ?>
