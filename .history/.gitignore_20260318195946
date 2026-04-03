@@ -1,5 +1,0 @@
-/uploads
-/vendor
-/node_modules
-.env
-config/database.php
