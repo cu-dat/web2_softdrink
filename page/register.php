@@ -1,3 +1,5 @@
+
+
 <div class="auth-wrapper">
 
     <div class="auth-card">
@@ -5,21 +7,16 @@
         <h3 class="auth-title">Đăng ký</h3>
 
         <!-- ERROR -->
-        <?php if(isset($_GET['error'])): ?>
+        <?php if(isset($_SESSION['error'])): ?>
             <div class="alert alert-danger">
-                <?php
-                switch($_GET['error']){
-                    case 'empty': echo "Vui lòng nhập đầy đủ"; break;
-                    case 'exist': echo "Email đã tồn tại"; break;
-                }
-                ?>
+                <?= $_SESSION['error']; unset($_SESSION['error']); ?>
             </div>
         <?php endif; ?>
 
         <!-- SUCCESS -->
-        <?php if(isset($_GET['success'])): ?>
+        <?php if(isset($_SESSION['success'])): ?>
             <div class="alert alert-success">
-                Đăng ký thành công! Hãy đăng nhập
+                <?= $_SESSION['success']; unset($_SESSION['success']); ?>
             </div>
         <?php endif; ?>
 
@@ -28,11 +25,13 @@
             <input id="name" 
                    class="form-control mb-3" 
                    name="name" 
+                   value="<?= $_SESSION['old']['name'] ?? '' ?>"
                    placeholder="Họ tên">
 
             <input id="email" 
                    class="form-control mb-3" 
                    name="email" 
+                   value="<?= $_SESSION['old']['email'] ?? '' ?>"
                    placeholder="Email">
 
             <div class="position-relative">
@@ -62,6 +61,8 @@
 
 </div>
 
+<?php unset($_SESSION['old']); ?>
+
 <script>
 function togglePass(){
     let p = document.getElementById("password");
@@ -69,12 +70,18 @@ function togglePass(){
 }
 
 function validateForm(){
-    let name = document.getElementById("name").value;
-    let email = document.getElementById("email").value;
-    let pass = document.getElementById("password").value;
+    let name = document.getElementById("name").value.trim();
+    let email = document.getElementById("email").value.trim();
+    let pass = document.getElementById("password").value.trim();
 
     if(name === "" || email === "" || pass === ""){
         alert("Nhập đầy đủ thông tin!");
+        return false;
+    }
+
+    let emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if(!emailPattern.test(email)){
+        alert("Email không hợp lệ!");
         return false;
     }
 

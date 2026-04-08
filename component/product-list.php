@@ -311,7 +311,15 @@ while ($row = $result->fetch_assoc()) {
         let btn = e.target;
         if (btn.hasAttribute("disabled")) return;
 
-        let qty = document.getElementById("qty-" + id).value;
+        let qtyInput = document.getElementById("qty-" + id);
+        let qty = parseInt(qtyInput.value) || 0;
+
+        // ✅ FIX CHÍNH: chặn qty = 0
+        if (qty <= 0) {
+            toast("⚠️ Số lượng phải lớn hơn 0!", "warn");
+            qtyInput.value = 1; // reset lại cho user
+            return;
+        }
 
         fetch(`action/cart.php?type=add&id=${id}&qty=${qty}`)
             .then(r => r.json())
