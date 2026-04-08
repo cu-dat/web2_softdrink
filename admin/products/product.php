@@ -10,6 +10,9 @@ $categories = $conn->query("SELECT * FROM categories WHERE status = 1");
 // 2. Lấy category_id
 $category_id = isset($_GET['category_id']) ? (int)$_GET['category_id'] : 0;
 
+// ✅ THÊM SEARCH
+$keyword = $_GET['keyword'] ?? '';
+
 // 3. Query sản phẩm
 $sql = "
 SELECT 
@@ -22,8 +25,20 @@ LEFT JOIN categories c ON p.category_id = c.id
 LEFT JOIN inventory inv ON p.id = inv.product_id
 ";
 
+// ✅ WHERE (GIỮ LOGIC + THÊM SEARCH)
+$where = [];
+
 if ($category_id > 0) {
-    $sql .= " WHERE p.category_id = $category_id";
+    $where[] = "p.category_id = $category_id";
+}
+
+if (!empty($keyword)) {
+    $keyword = $conn->real_escape_string($keyword);
+    $where[] = "(p.name LIKE '%$keyword%' OR p.sku LIKE '%$keyword%')";
+}
+
+if (!empty($where)) {
+    $sql .= " WHERE " . implode(" AND ", $where);
 }
 
 $sql .= " ORDER BY p.created_at ASC";
@@ -55,9 +70,11 @@ $products = $conn->query($sql);
             <div class="mb-3">
                 <strong>Tổng sản phẩm:</strong> <?php echo $products->num_rows; ?>
             </div>
-            <form method="GET" class="row mb-3">
 
-                <!-- Dropdown chọn loại -->
+            <!-- 🔥 FORM FILTER + SEARCH -->
+            <form method="GET" class="row mb-3 align-items-center">
+
+                <!-- Category -->
                 <div class="col-md-4">
                     <select name="category_id" class="form-select">
                         <option value="0">-- Tất cả loại sản phẩm --</option>
@@ -71,18 +88,26 @@ $products = $conn->query($sql);
                     </select>
                 </div>
 
-                <!-- Nút lọc -->
+                <!-- Lọc -->
                 <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary">Lọc</button>
+                    <button type="submit" class="btn btn-primary w-100">Lọc</button>
                 </div>
 
-                <!-- Nút reset -->
+                <!-- Reset -->
                 <div class="col-md-2">
-                    <a href="product.php" class="btn btn-secondary">Reset</a>
+                    <a href="product.php" class="btn btn-secondary w-100">Reset</a>
+                </div>
+
+                <!-- 🔍 SEARCH (BÊN PHẢI RESET) -->
+                <div class="col-md-4">
+                    <input type="text" name="keyword" class="form-control"
+                        placeholder="🔍 Tìm theo tên hoặc mã sản phẩm..."
+                        value="<?= htmlspecialchars($keyword) ?>">
                 </div>
 
             </form>
 
+            <!-- TABLE -->
             <table class="table table-bordered table-hover text-center align-middle">
                 <thead class="table-primary">
                     <tr>
@@ -105,27 +130,16 @@ $products = $conn->query($sql);
                 <tbody>
                     <?php while ($row = $products->fetch_assoc()): ?>
 
-
                         <?php
-                        // ✅ lấy giá nhập mới nhất
                         $cost = $row['cost_price'];
-
-                        $profit = $row['price'] - $cost;
-                        $margin = $cost > 0 ? (($profit / $cost) * 100) : 0;
-
-                        // ✅ giá bán
                         $selling_price = $row['price'];
-
-                        // ✅ lợi nhuận
                         $profit = $selling_price - $cost;
-
-                        // ✅ tồn kho
+                        $margin = $cost > 0 ? (($profit / $cost) * 100) : 0;
                         $stock = $row['stock'];
                         ?>
 
                         <tr>
                             <td><?= $row['id']; ?></td>
-
                             <td><?= htmlspecialchars($row['sku'] ?? '---'); ?></td>
 
                             <td>
@@ -140,30 +154,24 @@ $products = $conn->query($sql);
 
                             <td><?= htmlspecialchars($row['name']); ?></td>
                             <td><?= htmlspecialchars($row['category_name'] ?? 'No Category'); ?></td>
-
                             <td><?= htmlspecialchars($row['unit'] ?? '---'); ?></td>
 
-                            <!-- Giá nhập -->
                             <td class="text-success fw-bold">
                                 <?= formatCurrency($cost); ?>
                             </td>
 
-                            <!-- Giá bán -->
                             <td class="text-primary fw-bold">
                                 <?= formatCurrency($selling_price); ?>
                             </td>
 
-                            <!-- Lợi nhuận % -->
                             <td class="text-warning fw-bold">
-                                <?= $margin; ?>%
+                                <?= round($margin, 2); ?>%
                             </td>
 
-                            <!-- Lợi nhuận tiền -->
                             <td class="fw-bold <?= $profit > 0 ? 'text-danger' : 'text-secondary'; ?>">
                                 <?= $profit > 0 ? formatCurrency($profit) : 'Không lãi'; ?>
                             </td>
 
-                            <!-- Tồn kho -->
                             <td>
                                 <?php if ($stock <= 50): ?>
                                     <span class="badge bg-danger"><?= $stock; ?></span>
@@ -171,7 +179,7 @@ $products = $conn->query($sql);
                                     <span class="badge bg-success"><?= $stock; ?></span>
                                 <?php endif; ?>
                             </td>
-                            <!-- Trạng thái -->
+
                             <td>
                                 <?php if ($row['status']): ?>
                                     <span class="badge bg-success">Hiển thị</span>
@@ -180,12 +188,11 @@ $products = $conn->query($sql);
                                 <?php endif; ?>
                             </td>
 
-                            <!-- Action -->
                             <td class="text-nowrap">
-                                <?php if ($row['stock'] == 0): ?>
-                                    <button class="btn btn-secondary btn-sm" disabled title="Hết hàng, không thể hiển thị">🔒 Ẩn</button>
+                                <?php if ($stock == 0): ?>
+                                    <button class="btn btn-secondary btn-sm" disabled>🔒 Ẩn</button>
                                 <?php else: ?>
-                                    <a href="product_toggle.php?id=<?= $row['id']; ?>" class="btn btn-info btn-sm" onclick="return confirm('Bạn có chắc chắn muốn thay đổi trạng thái hiển thị?')">
+                                    <a href="product_toggle.php?id=<?= $row['id']; ?>" class="btn btn-info btn-sm">
                                         <?= $row['status'] ? 'Ẩn' : 'Hiện'; ?>
                                     </a>
                                 <?php endif; ?>
@@ -196,7 +203,7 @@ $products = $conn->query($sql);
                                 <button onclick="confirmDelete('product_delete.php?id=<?= $row['id']; ?>')"
                                     class="btn btn-danger btn-sm">Xóa</button>
                             </td>
-                    </tr>
+                        </tr>
 
                     <?php endwhile; ?>
                 </tbody>

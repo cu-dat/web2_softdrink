@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Xử lý upload ảnh (giữ nguyên)
     if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
-        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp','svg','tiff','heif'];
         $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
         if (in_array($ext, $allowed)) {
             if (!is_dir('uploads')) mkdir('uploads', 0777, true);

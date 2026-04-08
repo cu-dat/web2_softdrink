@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     // Xử lý upload ảnh mới
     if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
-        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp','svg','tiff','heif'];
         $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
 
         if (in_array($ext, $allowed)) {
