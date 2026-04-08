@@ -24,6 +24,13 @@ if($result->num_rows == 0){
 
 $user = $result->fetch_assoc();
 
+// ❌ CHECK STATUS (THÊM MỚI)
+if(isset($user['status']) && $user['status'] == 0){
+    $_SESSION['error'] = "Tài khoản đã bị khóa, không thể đăng nhập";
+    header("Location: ../index.php?page=login");
+    exit;
+}
+
 // login google
 if($user['provider'] == 'google'){
     $_SESSION['error'] = "Tài khoản này đăng nhập bằng Google";

@@ -1,8 +1,12 @@
 <?php
 if(session_status() === PHP_SESSION_NONE){
+
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.cookie_path', '/');
+    ini_set('session.cookie_domain', $_SERVER['HTTP_HOST']); // 🔥 QUAN TRỌNG
+
     session_start();
 }
-
 require_once(__DIR__ . "/../admin/config/database.php");
 
 $user = $_SESSION['user'] ?? null;
@@ -137,45 +141,13 @@ $count = array_sum($_SESSION['cart'] ?? []);
 </nav>
 
 <script>
-if(typeof BASE === "undefined"){
-    var BASE = "/web2_softdrink/";
-}
-
-// ===== TOAST XỊN =====
-function showToast(message, type="success"){
-    let toast = document.createElement("div");
-    toast.innerText = message;
-
-    toast.style.position = "fixed";
-    toast.style.top = "20px";
-    toast.style.right = "20px";
-    toast.style.background = (type === "error") ? "#dc2626" : "#16a34a";
-    toast.style.color = "#fff";
-    toast.style.padding = "12px 20px";
-    toast.style.borderRadius = "8px";
-    toast.style.boxShadow = "0 5px 15px rgba(0,0,0,0.2)";
-    toast.style.zIndex = "9999";
-    toast.style.fontSize = "14px";
-    toast.style.opacity = "0";
-    toast.style.transform = "translateY(-20px)";
-    toast.style.transition = "0.3s";
-
-    document.body.appendChild(toast);
-
-    setTimeout(()=> {
-        toast.style.opacity = "1";
-        toast.style.transform = "translateY(0)";
-    }, 10);
-
-    setTimeout(()=>{
-        toast.style.opacity = "0";
-        setTimeout(()=> toast.remove(), 300);
-    }, 1800);
-}
+var BASE = window.location.origin + "/web2_softdrink/"; // 🔥 FIX DOMAIN
 
 // ===== LOAD COUNT =====
 function loadCartCount(){
-    fetch(BASE + "action/cart.php?type=count")
+    fetch(BASE + "action/cart.php?type=count", {
+        credentials: "include"
+    })
     .then(res => res.json())
     .then(data => {
         let badge = document.getElementById("cart-count");
@@ -185,55 +157,41 @@ function loadCartCount(){
     });
 }
 
+// ===== UPDATE CART =====
 function updateCart(type, id){
 
-    fetch(BASE + "action/cart.php?type=" + type + "&id=" + id)
+    fetch(BASE + "action/cart.php?type=" + type + "&id=" + id, {
+        credentials: "include"
+    })
     .then(res => res.json())
     .then(data => {
 
         if(data.status !== "success"){
-            showToast("❌ Lỗi giỏ hàng!", "error");
+            alert("Lỗi giỏ hàng");
             return;
         }
 
-        // 🔥 FIX CHÍNH: load lại count thật
         loadCartCount();
-
-        // reload UI cart
         reloadCart();
-
-        // toast
-        if(type === "increase"){
-            showToast("➕ Tăng số lượng");
-        }
-        else if(type === "decrease"){
-            showToast("➖ Giảm số lượng");
-        }
-        else if(type === "remove"){
-            showToast("🗑️ Đã xoá");
-        }
-
-    })
-    .catch(()=>{
-        showToast("❌ Lỗi server!", "error");
     });
 }
 
-
-// ===== RELOAD CART (FIX CHUẨN) =====
+// ===== RELOAD CART =====
 function reloadCart(){
-
-    fetch(BASE + "component/cart.php?nocache=" + Date.now())
+    fetch(BASE + "component/cart.php?nocache=" + Date.now(), {
+        credentials: "include"
+    })
     .then(res => res.text())
     .then(html => {
-
         let container = document.getElementById("cartContainer");
         if(container){
             container.innerHTML = html;
         }
-    })
-    .catch(()=>{
-        console.log("Reload cart lỗi");
     });
 }
+
+// 🔥 AUTO LOAD KHI VÀO TRANG
+document.addEventListener("DOMContentLoaded", function(){
+    loadCartCount();
+});
 </script>

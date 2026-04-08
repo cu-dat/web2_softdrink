@@ -1,6 +1,14 @@
 <?php
-ini_set('session.cookie_path', '/');
-session_start();
+if(session_status() === PHP_SESSION_NONE){
+
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.cookie_path', '/');
+    ini_set('session.cookie_domain', $_SERVER['HTTP_HOST']); // 🔥 QUAN TRỌNG
+
+    session_start();
+}
+
+header('Content-Type: application/json');
 
 $type = $_GET['type'] ?? '';
 $id   = (int)($_GET['id'] ?? 0);
@@ -16,7 +24,7 @@ if($type == "check_login"){
     exit;
 }
 
-// ===== COUNT (KHÔNG CẦN ID) =====
+// ===== COUNT =====
 if($type == "count"){
     echo json_encode([
         "count" => array_sum($_SESSION['cart'] ?? [])
@@ -24,18 +32,9 @@ if($type == "count"){
     exit;
 }
 
-// ❌ CHƯA LOGIN
+// ===== CHƯA LOGIN =====
 if(!$user_id){
     echo json_encode(["status"=>"not_login"]);
-    exit;
-}
-
-// ===== CHẶN ID LỖI (CHỈ ÁP DỤNG ACTION) =====
-if(in_array($type, ["add","increase","decrease","remove"]) && $id <= 0){
-    echo json_encode([
-        "status" => "error",
-        "message" => "invalid_id"
-    ]);
     exit;
 }
 
@@ -71,3 +70,5 @@ echo json_encode([
     "status" => "success",
     "count"  => array_sum($_SESSION['cart'])
 ]);
+
+session_write_close();

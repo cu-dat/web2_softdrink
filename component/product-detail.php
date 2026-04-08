@@ -1,4 +1,12 @@
 <?php
+if(session_status() === PHP_SESSION_NONE){
+
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.cookie_path', '/');
+    ini_set('session.cookie_domain', $_SERVER['HTTP_HOST']); // 🔥 QUAN TRỌNG
+
+    session_start();
+}
 require_once(__DIR__ . "/../admin/config/database.php");
 
 /* ===== LẤY ID ===== */
@@ -18,68 +26,68 @@ if(!$product){
     echo "<div class='alert alert-danger'>Không tìm thấy sản phẩm!</div>";
     return;
 }
+
+/* ===== 3 SẢN PHẨM KHÁC ===== */
+$randomProducts = $conn->query("SELECT * FROM products WHERE id != $id ORDER BY RAND() LIMIT 3");
 ?>
 
 <style>
-.detail-box{
-    background:#fff;
-    padding:30px;
-    border-radius:10px;
-    box-shadow:0 2px 10px rgba(0,0,0,0.1);
+.main-layout{
     display:flex;
-    gap:40px;
-    margin-top:20px; /* ✅ thêm cho đẹp */
+    gap:30px;
 }
 
-.detail-img{
-    flex:1;
-    text-align:center;
+.left{ flex:3; }
+.right{ flex:1; }
+
+/* ===== PRODUCT ===== */
+.detail-box{
+    background:#f8f8f8;
+    padding:40px;
+    border-radius:15px;
+    display:flex;
+    gap:60px;
+    align-items:center;
 }
 
 .detail-img img{
-    width:100%;
-    max-width:350px;
-    object-fit:contain;
+    max-width:280px;
     transition:0.3s;
 }
-
 .detail-img img:hover{
-    transform:scale(1.05);
-}
-
-.detail-info{
-    flex:1;
+    transform:scale(1.08);
 }
 
 .title{
-    font-size:28px;
-    font-weight:bold;
+    font-size:32px;
+    font-weight:700;
 }
 
 .price{
     color:#0a7c66;
-    font-size:26px;
-    margin:15px 0;
+    font-size:28px;
+    font-weight:bold;
+    margin:20px 0;
 }
 
 .qty-box{
     display:flex;
-    align-items:center;
     gap:10px;
-    margin:20px 0;
+    align-items:center;
+    margin-bottom:20px;
 }
 
 .qty-btn{
-    width:35px;
-    height:35px;
+    width:40px;
+    height:40px;
     border:none;
     background:#ddd;
-    font-size:18px;
     cursor:pointer;
 }
 
 .qty-input{
     width:60px;
+    height:40px;
     text-align:center;
 }
 
@@ -95,11 +103,53 @@ if(!$product){
     background:#bda276;
 }
 
-.desc{
-    margin-top:20px;
-    color:#555;
+/* ===== FEATURED ===== */
+.feature-box{
+    background:#fff;
+    padding:20px;
+    border-radius:15px;
 }
 
+.feature-title{
+    font-size:20px;
+    font-weight:bold;
+    margin-bottom:15px;
+}
+
+.feature-item{
+    display:flex;
+    gap:15px;
+    align-items:center;
+    margin-bottom:15px;
+    padding:10px;
+    border-radius:10px;
+    transition:0.2s;
+}
+
+.feature-item:hover{
+    background:#f3f3f3;
+    transform:translateX(5px);
+}
+
+.feature-item img{
+    width:70px;
+    height:70px;
+    object-fit:contain;
+}
+
+.feature-price{
+    color:#0a7c66;
+}
+
+/* ===== DETAILS ===== */
+.details-box{
+    margin-top:30px;
+    background:#f8f8f8;
+    padding:30px;
+    border-radius:15px;
+}
+
+/* ===== TOAST ===== */
 .toast-custom{
     position:fixed;
     top:20px;
@@ -119,74 +169,116 @@ if(!$product){
 }
 </style>
 
-<!-- ✅ FIX CHUẨN: BỌC CONTAINER GIỐNG HEADER/FOOTER -->
-
 <div class="container-fluid px-5">
 
-```
-<div class="detail-box">
+<div class="main-layout">
 
-    <!-- IMAGE -->
-    <div class="detail-img">
+    <!-- LEFT -->
+    <div class="left">
 
-        <?php
-        $img = $product['image'] ?? '';
+        <div class="detail-box">
 
-        if(empty($img)){
-            $img = "assets/images/default.png";
-        }else{
-            $img = "assets/images/" . $img;
-        }
-        ?>
+            <!-- IMAGE -->
+            <div class="detail-img">
+                <?php
+                $img = !empty($product['image']) 
+                    ? "assets/images/".$product['image'] 
+                    : "assets/images/default.png";
+                ?>
+                <img src="<?= $img ?>" 
+                     onerror="this.onerror=null;this.src='assets/images/default.png'">
+            </div>
 
-        <img src="<?= $img ?>" 
-             onerror="this.onerror=null;this.src='assets/images/default.png'">
+            <!-- INFO -->
+            <div>
+
+                <div class="title"><?= $product['name'] ?></div>
+                <div>#<?= $product['id'] ?></div>
+
+                <div class="price">
+                    <?= number_format($product['price']) ?>đ
+                </div>
+
+                <?php
+                $isOut = ($product['status'] == 0 || $product['stock'] <= 0);
+                ?>
+
+                <div class="qty-box">
+                    <span>Số lượng</span>
+
+                    <button class="qty-btn" onclick="changeQty(-1)">-</button>
+                    <input id="qty" value="1" class="qty-input">
+                    <button class="qty-btn" onclick="changeQty(1)">+</button>
+                </div>
+
+                <?php if(!$isOut): ?>
+                    <button class="add-btn" onclick="addToCart(<?= $product['id'] ?>)">
+                        🛒 Thêm vào giỏ
+                    </button>
+                <?php else: ?>
+                    <button class="add-btn" disabled>
+                        ❌ Hết hàng
+                    </button>
+                <?php endif; ?>
+
+                <div style="margin-top:15px;">
+                    Nước giải khát giúp bù nước và năng lượng nhanh chóng.
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- DETAILS -->
+        <div class="details-box">
+            <h4>Mô Tả</h4>
+            <div>
+                <?= nl2br($product['description'] ?? 'Chưa có mô tả sản phẩm') ?>
+            </div>
+        </div>
 
     </div>
 
-    <!-- INFO -->
-    <div class="detail-info">
+    <!-- RIGHT -->
+    <div class="right">
 
-        <div class="title"><?= $product['name'] ?></div>
+        <div class="feature-box">
 
-        <div class="text-muted"> #<?= $product['id'] ?></div>
+            <div class="feature-title">Featured Products</div>
 
-        <div class="price">
-            <?= number_format($product['price']) ?>đ
-        </div>
+            <?php while($item = $randomProducts->fetch_assoc()): 
+                $img = !empty($item['image']) 
+                    ? "assets/images/".$item['image'] 
+                    : "assets/images/default.png";
+            ?>
 
-        <?php
-        $isOut = ($product['status'] == 0 || $product['stock'] <= 0);
-        ?>
+              <a href="index.php?page=detail&id=<?= $item['id'] ?>" 
+                   style="text-decoration:none; color:inherit;">
 
-        <div class="qty-box">
-            <span>Số lượng</span>
 
-            <button class="qty-btn" onclick="changeQty(-1)">-</button>
+                <div class="feature-item">
 
-            <input type="text" id="qty" value="1" class="qty-input">
+                    <img src="<?= $img ?>"  
+                         onerror="this.onerror=null;this.src='assets/images/default.png'">
 
-            <button class="qty-btn" onclick="changeQty(1)">+</button>
-        </div>
+                    <div>
+                        <div><?= $item['name'] ?></div>
+                        <div class="feature-price">
+                            <?= number_format($item['price']) ?>đ
+                        </div>
+                    </div>
 
-        <?php if(!$isOut): ?>
-            <button class="add-btn" onclick="addToCart(<?= $product['id'] ?>)">
-                🛒 Thêm vào giỏ
-            </button>
-        <?php else: ?>
-            <button class="add-btn" disabled>
-                ❌ Hết hàng
-            </button>
-        <?php endif; ?>
+                </div>
 
-        <div class="desc">
-            Nước giải khát giúp bù nước và năng lượng nhanh chóng.
+            </a>
+
+            <?php endwhile; ?>
+
         </div>
 
     </div>
 
 </div>
-```
 
 </div>
 
@@ -194,10 +286,8 @@ if(!$product){
 function changeQty(n){
     let qty = document.getElementById("qty");
     let value = parseInt(qty.value) || 1;
-
     value += n;
     if(value < 1) value = 1;
-
     qty.value = value;
 }
 
@@ -232,7 +322,7 @@ function addToCart(id){
 
         if(typeof reloadCart === "function") reloadCart();
 
-        showToast("🛒 +" + qty);
+        toast("🛒 Đã thêm " + qty + " sản phẩm");
     });
 }
 </script>

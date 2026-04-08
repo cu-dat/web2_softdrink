@@ -1,5 +1,10 @@
 <?php
 if(session_status() === PHP_SESSION_NONE){
+
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.cookie_path', '/');
+    ini_set('session.cookie_domain', $_SERVER['HTTP_HOST']); // 🔥 QUAN TRỌNG
+
     session_start();
 }
 ?>

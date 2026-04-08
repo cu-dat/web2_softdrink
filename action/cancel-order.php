@@ -25,11 +25,10 @@ if($id <= 0){
 }
 
 // ===== CHECK ORDER =====
-$sql = "
+$res = $conn->query("
     SELECT * FROM orders 
     WHERE id = $id AND customer_id = $user_id
-";
-$res = $conn->query($sql);
+");
 
 if(!$res || $res->num_rows == 0){
     echo json_encode([
@@ -40,25 +39,23 @@ if(!$res || $res->num_rows == 0){
 }
 
 $order = $res->fetch_assoc();
-
-// ===== CHECK STATUS =====
 $status = strtolower(trim($order['status']));
 
-if($status !== 'pending'){
+// ❌ đã cancel rồi thì không làm nữa
+if($status === 'cancelled'){
     echo json_encode([
         "status"=>"error",
-        "msg"=>"not_pending",
-        "current_status"=>$order['status']
+        "msg"=>"already_cancelled"
     ]);
     exit;
 }
 
 // ===== LẤY ITEMS =====
-$item_sql = "
-    SELECT * FROM order_details 
+$items = $conn->query("
+    SELECT product_id, quantity 
+    FROM order_details 
     WHERE order_id = $id
-";
-$items = $conn->query($item_sql);
+");
 
 if(!$items){
     echo json_encode([
@@ -73,39 +70,33 @@ $conn->begin_transaction();
 
 try{
 
-    // 🔄 HOÀN KHO (FIX: inventory)
-    while($item = $items->fetch_assoc()){
-        $pid = (int)$item['product_id'];
-        $qty = (int)$item['quantity'];
+    // ✅ nếu đã confirm → hoàn kho
+    if($status === 'confirmed'){
 
-        $updateStock = "
-            UPDATE inventory
-            SET stock = stock + $qty
-            WHERE product_id = $pid
-        ";
+        while($item = $items->fetch_assoc()){
+            $pid = (int)$item['product_id'];
+            $qty = (int)$item['quantity'];
 
-        if(!$conn->query($updateStock)){
-            throw new Exception("update_stock_failed");
+            $conn->query("
+                UPDATE inventory
+                SET stock = stock + $qty
+                WHERE product_id = $pid
+            ");
         }
     }
 
     // ===== UPDATE STATUS =====
-    $updateOrder = "
+    $conn->query("
         UPDATE orders 
         SET status = 'cancelled'
         WHERE id = $id
-    ";
-
-    if(!$conn->query($updateOrder)){
-        throw new Exception("update_order_failed");
-    }
+    ");
 
     $conn->commit();
 
     echo json_encode([
         "status"=>"success"
     ]);
-    exit;
 
 }catch(Exception $e){
 
@@ -115,5 +106,4 @@ try{
         "status"=>"error",
         "msg"=>$e->getMessage()
     ]);
-    exit;
 }
